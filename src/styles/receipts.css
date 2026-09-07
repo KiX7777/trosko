@@ -1,0 +1,102 @@
+.receipts-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.72fr) minmax(0, 1.28fr);
+  gap: 20px;
+}
+.receipt-dropzone {
+  min-height: 300px;
+  border: 1px dashed var(--shell-border);
+  border-radius: 20px;
+  background: var(--shell-panel);
+  color: var(--shell-text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 30px;
+  cursor: pointer;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+}
+.receipt-dropzone:hover,
+.receipt-dropzone.active {
+  border-color: var(--shell-primary);
+  background: rgba(20, 184, 166, 0.07);
+}
+.receipt-dropzone > span:not(.upload-orb) {
+  color: var(--shell-muted);
+  font-size: 13px;
+}
+.upload-orb {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  color: var(--shell-primary);
+  background: rgba(20, 184, 166, 0.1);
+}
+.receipt-review-card {
+  min-height: 300px;
+}
+.count-badge {
+  display: grid;
+  place-items: center;
+  min-width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: rgba(20, 184, 166, 0.12);
+  color: var(--shell-primary);
+  font-weight: 800;
+}
+.receipt-list {
+  display: grid;
+  gap: 8px;
+}
+.receipt-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--shell-border);
+}
+.receipt-row:last-child {
+  border-bottom: 0;
+}
+.receipt-file-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--shell-panel-2);
+  color: var(--shell-primary);
+}
+.receipt-row strong,
+.receipt-row small {
+  display: block;
+}
+.receipt-row small {
+  color: var(--shell-muted);
+  font-size: 12px;
+  margin-top: 2px;
+}
+.receipt-status {
+  font-size: 11px;
+  color: var(--shell-warning);
+  background: rgba(245, 158, 11, 0.12);
+  padding: 6px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+@media (max-width: 900px) {
+  .receipts-layout {
+    grid-template-columns: 1fr;
+  }
+  .receipt-dropzone {
+    min-height: 210px;
+  }
+}
