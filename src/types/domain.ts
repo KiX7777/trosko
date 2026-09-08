@@ -167,6 +167,10 @@ export interface CreateTransactionInput {
   transferAccountId?: string
 }
 
+export interface UpdateTransactionInput extends CreateTransactionInput {
+  id: string
+}
+
 export interface CreateAccountInput {
   name: string
   type: AccountType

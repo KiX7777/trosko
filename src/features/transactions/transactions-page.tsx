@@ -55,6 +55,7 @@ export function TransactionsPage() {
     queryFn: () => getSavedViews('transactions'),
   })
   const queryClient = useQueryClient()
+  const openEditTransaction = useUIStore((state) => state.openEditTransaction)
   const deleteMutation = useMutation({
     mutationFn: deleteTransaction,
     onSuccess: () => {
@@ -176,8 +177,36 @@ export function TransactionsPage() {
           </strong>
         ),
       },
+      {
+        id: 'actions',
+        header: '',
+        enableSorting: false,
+        cell: ({ row }) => {
+          const transferAccountId =
+            row.original.type === 'transfer'
+              ? transactions.data?.find(
+                  (candidate) =>
+                    candidate.id !== row.original.id &&
+                    ((row.original.transferGroupId &&
+                      candidate.transferGroupId === row.original.transferGroupId) ||
+                      candidate.transferGroupId === row.original.id ||
+                      row.original.transferGroupId === candidate.id),
+                )?.accountId
+              : undefined
+          return (
+            <Button
+              variant="icon"
+              aria-label={t('aria.edit', { name: row.original.description })}
+              title={t('aria.edit', { name: row.original.description })}
+              onClick={() => openEditTransaction(row.original, transferAccountId)}
+            >
+              <Icon name="pencil" size={15} />
+            </Button>
+          )
+        },
+      },
     ],
-    [accountMap, categoryMap, labelMap],
+    [accountMap, categoryMap, labelMap, openEditTransaction, transactions.data],
   )
   const table = useReactTable({
     data: transactions.data ?? [],

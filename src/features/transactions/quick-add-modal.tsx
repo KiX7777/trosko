@@ -1,9 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'react-toastify'
 import { z } from 'zod'
-import { createTransaction, getAccounts, getCategories } from '../../lib/repository'
+import {
+  createTransaction,
+  getAccounts,
+  getCategories,
+  updateTransaction,
+} from '../../lib/repository'
 import { todayIso } from '../../lib/format'
 import { useUIStore } from '../../stores/ui-store'
 import { AppModal } from '../../components/ui/modal'
@@ -42,10 +48,12 @@ type FormInput = z.input<typeof schema>
 type FormOutput = z.output<typeof schema>
 
 export function QuickAddModal() {
-  const { quickAddOpen, quickAddType, closeQuickAdd } = useUIStore()
+  const { quickAddOpen, quickAddType, editingTransaction, closeQuickAdd } = useUIStore()
   const queryClient = useQueryClient()
   const accountsQuery = useQuery({ queryKey: ['accounts'], queryFn: () => getAccounts() })
   const categoriesQuery = useQuery({ queryKey: ['categories'], queryFn: getCategories })
+  const transaction = editingTransaction?.transaction
+  const isEditing = Boolean(transaction)
   const form = useForm<FormInput, unknown, FormOutput>({
     resolver: zodResolver(schema),
     mode: 'onBlur',
@@ -58,16 +66,48 @@ export function QuickAddModal() {
       accountId: '',
     },
   })
+  useEffect(() => {
+    if (transaction) {
+      form.reset({
+        type: transaction.type,
+        description: transaction.description,
+        amount: transaction.amount,
+        accountId: transaction.accountId,
+        categoryId: transaction.categoryId,
+        transferAccountId: editingTransaction?.transferAccountId,
+        transactionDate: transaction.transactionDate,
+        merchant: transaction.merchant,
+      })
+      return
+    }
+    form.reset({
+      type:
+        quickAddType === 'income' ? 'income' : quickAddType === 'transfer' ? 'transfer' : 'expense',
+      transactionDate: todayIso(),
+      amount: 0,
+      accountId: '',
+    })
+  }, [editingTransaction, form, quickAddOpen, quickAddType, transaction])
   const type = form.watch('type')
   const mutation = useMutation({
-    mutationFn: createTransaction,
+    mutationFn: (values: FormOutput) =>
+      transaction
+        ? updateTransaction({
+            ...values,
+            id: transaction.id,
+            currency: transaction.currency,
+            labelIds: transaction.labelIds,
+            notes: transaction.notes,
+            recurringTransactionId: transaction.recurringTransactionId,
+          })
+        : createTransaction({ ...values, currency: 'EUR', labelIds: [] }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['transactions'] })
       void queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       void queryClient.invalidateQueries({ queryKey: ['accounts'] })
       closeQuickAdd()
       form.reset({ type: 'expense', transactionDate: todayIso(), amount: 0, accountId: '' })
-      toast.success(t('quickAdd.saved'))
+      toast.success(t(isEditing ? 'quickAdd.updated' : 'quickAdd.saved'))
     },
     onError: () => toast.error(t('quickAdd.error')),
   })
@@ -76,14 +116,12 @@ export function QuickAddModal() {
     <AppModal
       isOpen={quickAddOpen}
       onRequestClose={closeQuickAdd}
-      eyebrow={t('quickAdd.eyebrow')}
-      title={t('quickAdd.title')}
+      eyebrow={t(isEditing ? 'quickAdd.editEyebrow' : 'quickAdd.eyebrow')}
+      title={t(isEditing ? 'quickAdd.editTitle' : 'quickAdd.title')}
     >
       <form
         className="form__stack"
-        onSubmit={form.handleSubmit((values) =>
-          mutation.mutate({ ...values, currency: 'EUR', labelIds: [] }),
-        )}
+        onSubmit={form.handleSubmit((values) => mutation.mutate(values))}
       >
         <div className="segmented-control">
           {(['expense', 'income', 'transfer'] as const).map((value) => (
@@ -242,7 +280,9 @@ export function QuickAddModal() {
             {t('common.cancel')}
           </Button>
           <Button type="submit" variant="primary" disabled={mutation.isPending}>
-            {mutation.isPending ? t('quickAdd.saving') : t('quickAdd.save')}
+            {mutation.isPending
+              ? t('quickAdd.saving')
+              : t(isEditing ? 'quickAdd.update' : 'quickAdd.save')}
           </Button>
         </div>
       </form>

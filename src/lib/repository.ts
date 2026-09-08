@@ -20,6 +20,7 @@ import type {
   SavedView,
   Transaction,
   TransactionFilters,
+  UpdateTransactionInput,
 } from '../types/domain'
 
 const storagePrefix = 'trosko-db:'
@@ -559,6 +560,12 @@ async function updateAccountBalance(accountId: string, delta: number, userId: st
   if (update.error) throw update.error
 }
 
+function transactionDelta(type: Transaction['type'], amount: number, transferDestination = false) {
+  if (type === 'income') return amount
+  if (type === 'transfer' && transferDestination) return amount
+  return -amount
+}
+
 export async function createTransaction(input: CreateTransactionInput): Promise<Transaction> {
   if (supabase) {
     const userId = await currentUserId()
@@ -663,6 +670,209 @@ export async function createTransaction(input: CreateTransactionInput): Promise<
     )
   }
   return delay(transaction)
+}
+
+export async function updateTransaction(input: UpdateTransactionInput): Promise<Transaction> {
+  if (input.type === 'transfer' && !input.transferAccountId) {
+    throw new Error('Odredišni račun je obavezan za prijenos.')
+  }
+  if (supabase) {
+    const userId = await currentUserId()
+    const { data: current, error: currentError } = await client()
+      .from('transactions')
+      .select('*')
+      .eq('id', input.id)
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (currentError) throw currentError
+    if (!current) throw new Error('Transakcija nije pronađena.')
+
+    let counterpart: Row | null = null
+    if (current.transfer_group_id) {
+      const { data, error } = await client()
+        .from('transactions')
+        .select('*')
+        .eq('transfer_group_id', current.transfer_group_id)
+        .eq('user_id', userId)
+        .neq('id', input.id)
+        .maybeSingle()
+      if (error) throw error
+      counterpart = data
+    }
+
+    await updateAccountBalance(
+      current.account_id,
+      -transactionDelta(current.type, Number(current.amount)),
+      userId,
+    )
+    if (counterpart) {
+      await updateAccountBalance(
+        counterpart.account_id,
+        -transactionDelta(current.type, Number(counterpart.amount), true),
+        userId,
+      )
+    }
+
+    const transferGroupId =
+      input.type === 'transfer' ? (current.transfer_group_id ?? crypto.randomUUID()) : null
+    const payload = {
+      account_id: input.accountId,
+      category_id: input.categoryId ?? null,
+      type: input.type,
+      amount: input.amount,
+      currency: input.currency,
+      exchange_rate: Number(current.exchange_rate ?? 1),
+      amount_base: input.amount,
+      description: input.description,
+      merchant: input.merchant ?? null,
+      transaction_date: input.transactionDate,
+      notes: input.notes ?? current.notes ?? null,
+      recurring_transaction_id:
+        input.recurringTransactionId ?? current.recurring_transaction_id ?? null,
+      transfer_group_id: transferGroupId,
+      updated_at: new Date().toISOString(),
+    }
+    const { data, error } = await client()
+      .from('transactions')
+      .update(payload)
+      .eq('id', input.id)
+      .eq('user_id', userId)
+      .select('*')
+      .single()
+    if (error) throw error
+
+    const labelsDelete = await client()
+      .from('transaction_labels')
+      .delete()
+      .eq('transaction_id', input.id)
+    if (labelsDelete.error) throw labelsDelete.error
+    if (input.labelIds?.length) {
+      const labelsInsert = await client()
+        .from('transaction_labels')
+        .insert(input.labelIds.map((labelId) => ({ transaction_id: input.id, label_id: labelId })))
+      if (labelsInsert.error) throw labelsInsert.error
+    }
+
+    if (input.type === 'transfer') {
+      if (counterpart) {
+        const paired = await client()
+          .from('transactions')
+          .update({
+            ...payload,
+            account_id: input.transferAccountId,
+            category_id: null,
+            transfer_group_id: transferGroupId,
+          })
+          .eq('id', counterpart.id)
+          .eq('user_id', userId)
+        if (paired.error) throw paired.error
+      } else {
+        const paired = await client()
+          .from('transactions')
+          .insert({
+            ...payload,
+            user_id: userId,
+            account_id: input.transferAccountId,
+            category_id: null,
+            transfer_group_id: transferGroupId,
+          })
+        if (paired.error) throw paired.error
+      }
+    } else if (counterpart) {
+      const labelsDelete = await client()
+        .from('transaction_labels')
+        .delete()
+        .eq('transaction_id', counterpart.id)
+      if (labelsDelete.error) throw labelsDelete.error
+      const pairedDelete = await client()
+        .from('transactions')
+        .delete()
+        .eq('id', counterpart.id)
+        .eq('user_id', userId)
+      if (pairedDelete.error) throw pairedDelete.error
+    }
+
+    await updateAccountBalance(input.accountId, transactionDelta(input.type, input.amount), userId)
+    if (input.type === 'transfer') {
+      await updateAccountBalance(
+        input.transferAccountId!,
+        transactionDelta(input.type, input.amount, true),
+        userId,
+      )
+    }
+    return mapTransaction({
+      ...data,
+      transaction_labels: input.labelIds?.map((labelId) => ({ label_id: labelId })) ?? [],
+    })
+  }
+
+  const transactions = read('transactions', demoTransactions)
+  const accounts = read('accounts', demoAccounts)
+  const current = transactions.find((transaction) => transaction.id === input.id)
+  if (!current) throw new Error('Transakcija nije pronađena.')
+  const counterpart =
+    current.type === 'transfer'
+      ? transactions.find(
+          (transaction) =>
+            transaction.id !== current.id &&
+            ((current.transferGroupId && transaction.transferGroupId === current.transferGroupId) ||
+              transaction.transferGroupId === current.id ||
+              current.transferGroupId === transaction.id),
+        )
+      : undefined
+
+  const timestamp = new Date().toISOString()
+  const nextAccounts = accounts.map((account) => ({ ...account }))
+  const applyBalance = (accountId: string, delta: number) => {
+    const account = nextAccounts.find((candidate) => candidate.id === accountId)
+    if (account) account.balance += delta
+  }
+  applyBalance(current.accountId, -transactionDelta(current.type, current.amount))
+  if (counterpart) {
+    applyBalance(
+      counterpart.accountId,
+      -transactionDelta(counterpart.type, counterpart.amount, true),
+    )
+  }
+
+  const updated: Transaction = {
+    ...current,
+    accountId: input.accountId,
+    categoryId: input.categoryId,
+    type: input.type,
+    amount: input.amount,
+    currency: input.currency,
+    amountBase: input.amount,
+    description: input.description,
+    merchant: input.merchant,
+    transactionDate: input.transactionDate,
+    notes: input.notes ?? current.notes,
+    labelIds: input.labelIds ?? current.labelIds,
+    recurringTransactionId: input.recurringTransactionId ?? current.recurringTransactionId,
+    transferGroupId:
+      input.type === 'transfer' ? (current.transferGroupId ?? current.id) : undefined,
+    updatedAt: timestamp,
+  }
+  let paired: Transaction | undefined
+  if (input.type === 'transfer') {
+    paired = {
+      ...updated,
+      id: counterpart?.id ?? id('tx'),
+      accountId: input.transferAccountId!,
+      categoryId: undefined,
+      labelIds: [],
+      transferGroupId: updated.transferGroupId,
+    }
+  }
+  applyBalance(updated.accountId, transactionDelta(input.type, input.amount))
+  if (paired) applyBalance(paired.accountId, transactionDelta(input.type, input.amount, true))
+
+  const nextTransactions = transactions
+    .filter((transaction) => transaction.id !== current.id && transaction.id !== counterpart?.id)
+    .concat(updated, ...(paired ? [paired] : []))
+  write('transactions', nextTransactions)
+  write('accounts', nextAccounts)
+  return delay(updated)
 }
 
 export async function deleteTransaction(transactionId: string): Promise<void> {
