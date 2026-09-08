@@ -126,7 +126,6 @@ function RouteLoading() {
       </div>
       <div className="route-loading__message">
         <span className="route-loading__spinner" />
-        <span>Pripremamo tvoj pregled</span>
       </div>
       <span className="route-loading__sr-only">Učitavam…</span>
     </main>

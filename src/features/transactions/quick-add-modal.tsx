@@ -8,6 +8,7 @@ import {
   createTransaction,
   getAccounts,
   getCategories,
+  getLabels,
   updateTransaction,
 } from '../../lib/repository'
 import { todayIso } from '../../lib/format'
@@ -18,6 +19,7 @@ import { CurrencyInput } from '../../components/ui/currency-input'
 import { FieldError, fieldClassName } from '../../components/ui/form-field'
 import { AppSelect } from '../../components/ui/select'
 import { t } from '../../lib/i18n'
+import { formatCategoryOption } from '../../components/ui/category-options'
 
 const schema = z
   .object({
@@ -30,6 +32,7 @@ const schema = z
     amount: z.coerce.number().positive(t('quickAdd.invalidAmount')),
     accountId: z.string().min(1, t('quickAdd.invalidAccount')),
     categoryId: z.string().optional(),
+    labelId: z.string().optional(),
     transferAccountId: z.string().optional(),
     transactionDate: z.string().min(1, t('validation.invalidDate')),
     merchant: z.string().optional(),
@@ -52,6 +55,7 @@ export function QuickAddModal() {
   const queryClient = useQueryClient()
   const accountsQuery = useQuery({ queryKey: ['accounts'], queryFn: () => getAccounts() })
   const categoriesQuery = useQuery({ queryKey: ['categories'], queryFn: getCategories })
+  const labelsQuery = useQuery({ queryKey: ['labels'], queryFn: getLabels })
   const transaction = editingTransaction?.transaction
   const isEditing = Boolean(transaction)
   const form = useForm<FormInput, unknown, FormOutput>({
@@ -74,6 +78,7 @@ export function QuickAddModal() {
         amount: transaction.amount,
         accountId: transaction.accountId,
         categoryId: transaction.categoryId,
+        labelId: transaction.labelIds[0] ?? '',
         transferAccountId: editingTransaction?.transferAccountId,
         transactionDate: transaction.transactionDate,
         merchant: transaction.merchant,
@@ -86,27 +91,34 @@ export function QuickAddModal() {
       transactionDate: todayIso(),
       amount: 0,
       accountId: '',
+      labelId: '',
     })
   }, [editingTransaction, form, quickAddOpen, quickAddType, transaction])
   const type = form.watch('type')
   const mutation = useMutation({
-    mutationFn: (values: FormOutput) =>
+    mutationFn: ({ labelId, ...values }: FormOutput) =>
       transaction
         ? updateTransaction({
             ...values,
             id: transaction.id,
             currency: transaction.currency,
-            labelIds: transaction.labelIds,
+            labelIds: labelId ? [labelId] : [],
             notes: transaction.notes,
             recurringTransactionId: transaction.recurringTransactionId,
           })
-        : createTransaction({ ...values, currency: 'EUR', labelIds: [] }),
+        : createTransaction({ ...values, currency: 'EUR', labelIds: labelId ? [labelId] : [] }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['transactions'] })
       void queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       void queryClient.invalidateQueries({ queryKey: ['accounts'] })
       closeQuickAdd()
-      form.reset({ type: 'expense', transactionDate: todayIso(), amount: 0, accountId: '' })
+      form.reset({
+        type: 'expense',
+        transactionDate: todayIso(),
+        amount: 0,
+        accountId: '',
+        labelId: '',
+      })
       toast.success(t(isEditing ? 'quickAdd.updated' : 'quickAdd.saved'))
     },
     onError: () => toast.error(t('quickAdd.error')),
@@ -264,6 +276,9 @@ export function QuickAddModal() {
                   options={(categoriesQuery.data ?? [])
                     .filter((category) => category.type === type)
                     .map((category) => ({ value: category.id, label: category.name }))}
+                  formatOptionLabel={formatCategoryOption(
+                    (categoriesQuery.data ?? []).filter((category) => category.type === type),
+                  )}
                   isSearchable
                   isClearable
                 />
@@ -271,6 +286,27 @@ export function QuickAddModal() {
             />
           </label>
         )}
+        <label className="form__field">
+          <span>{t('quickAdd.label')}</span>
+          <Controller
+            control={form.control}
+            name="labelId"
+            render={({ field }) => (
+              <AppSelect
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                placeholder={t('common.optional')}
+                options={(labelsQuery.data ?? []).map((label) => ({
+                  value: label.id,
+                  label: label.name,
+                }))}
+                isSearchable
+                isClearable
+              />
+            )}
+          />
+        </label>
         <label className="form__field">
           <span>{t('quickAdd.source')}</span>
           <input placeholder={t('common.optional')} {...form.register('merchant')} />

@@ -1,13 +1,14 @@
 import { useMemo } from 'react'
-import { format, parseISO } from 'date-fns'
-import { barX, barY, defineChart, group, stack } from '@tanstack/charts'
+import { eachDayOfInterval, endOfMonth, format, parseISO, startOfMonth } from 'date-fns'
+import { hr } from 'date-fns/locale'
+import { areaY, barX, barY, defineChart, group, lineY, stack } from '@tanstack/charts'
 import { pie, polar, radialArc } from '@tanstack/charts/polar'
 import { scaleBand } from '@tanstack/charts/scales/band'
 import { scaleLinear } from '@tanstack/charts/scales/linear'
 import { Chart } from '@tanstack/charts/react/core'
 import { motion, stagger } from '@tanstack/charts/motion'
 import { tooltip } from '@tanstack/charts/tooltip'
-import type { DashboardSummary } from '../../types/domain'
+import type { DashboardSummary, Transaction } from '../../types/domain'
 import { t } from '../../lib/i18n'
 import { formatCurrency } from '../../lib/format'
 
@@ -38,6 +39,134 @@ const chartMotion = motion({
   respectReducedMotion: true,
   transition: { type: 'tween', duration: 700, easing: 'ease-out' },
 })
+
+type DailyExpensePoint = {
+  date: string
+  day: number
+  daily: number
+  cumulative: number
+}
+
+export function DailyExpenseChart({
+  transactions,
+  month,
+  height = 250,
+  ariaLabel,
+}: {
+  transactions: readonly Transaction[]
+  month: string
+  height?: number
+  ariaLabel: string
+}) {
+  const rows = useMemo<DailyExpensePoint[]>(() => {
+    const monthStart = startOfMonth(parseISO(`${month}-01`))
+    const monthEnd = endOfMonth(monthStart)
+    const totalsByDate = new Map<string, number>()
+
+    transactions.forEach((transaction) => {
+      totalsByDate.set(
+        transaction.transactionDate,
+        (totalsByDate.get(transaction.transactionDate) ?? 0) + transaction.amountBase,
+      )
+    })
+
+    return eachDayOfInterval({ start: monthStart, end: monthEnd }).reduce<DailyExpensePoint[]>(
+      (points, date) => {
+        const dateValue = format(date, 'yyyy-MM-dd')
+        const daily = totalsByDate.get(dateValue) ?? 0
+        const cumulative = (points.at(-1)?.cumulative ?? 0) + daily
+        return [...points, { date: dateValue, day: date.getDate(), daily, cumulative }]
+      },
+      [],
+    )
+  }, [month, transactions])
+
+  const definition = useMemo(
+    () =>
+      defineChart({
+        motion: {
+          transition: { type: 'tween', duration: 780, easing: 'ease-out' },
+        },
+        marks: [
+          areaY(rows, {
+            id: 'daily-expenses-area',
+            x: 'day',
+            y: 'cumulative',
+            y1: 0,
+            fill: 'var(--shell-primary)',
+            fillOpacity: 0.16,
+            motion: { transition: { type: 'tween', duration: 780, easing: 'ease-out' } },
+          }),
+          lineY(rows, {
+            id: 'daily-expenses-line',
+            x: 'day',
+            y: 'cumulative',
+            points: true,
+            stroke: 'var(--shell-primary)',
+            strokeWidth: 2.5,
+            motion: { transition: { type: 'tween', duration: 780, easing: 'ease-out' } },
+          }),
+        ],
+        scales: {
+          x: {
+            scale: scaleLinear,
+            nice: false,
+            domain: [1, rows.at(-1)?.day ?? 31],
+            axis: {
+              ticks: {
+                count: Math.min(7, rows.length),
+                format: (value) => `${Math.round(value)}.`,
+              },
+            },
+          },
+          y: {
+            scale: scaleLinear,
+            nice: true,
+            grid: true,
+            axis: {
+              ticks: {
+                count: 4,
+                format: (value) => `${Math.round(value)} €`,
+              },
+            },
+          },
+        },
+        tooltip: {
+          use: tooltip,
+          items: [
+            {
+              field: 'date',
+              label: t('common.date'),
+              text: (point) => format(parseISO(point.datum.date), 'd. MMMM', { locale: hr }),
+            },
+            {
+              field: 'daily',
+              label: t('dashboard.dailyExpense'),
+              text: (point) => formatCurrency(point.datum.daily),
+            },
+            {
+              field: 'cumulative',
+              label: t('dashboard.cumulativeExpense'),
+              text: (point) => formatCurrency(point.datum.cumulative),
+            },
+          ],
+        },
+      }),
+    [rows],
+  )
+
+  return (
+    <div className="chart__container chart--daily-expenses">
+      <Chart
+        renderer={chartMotion}
+        definition={definition}
+        height={height}
+        ariaLabel={ariaLabel}
+        ariaDescription={t('dashboard.dailyExpenseChartDescription')}
+      />
+    </div>
+  )
+}
 
 export function CashFlowChart({
   data,

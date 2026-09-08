@@ -66,6 +66,7 @@ export function AppSelect({
   placeholder,
   invalid = false,
   describedBy,
+  inputId,
   isSearchable = false,
   isClearable = false,
   formatOptionLabel,
@@ -77,6 +78,7 @@ export function AppSelect({
   placeholder?: string
   invalid?: boolean
   describedBy?: string
+  inputId?: string
   isSearchable?: boolean
   isClearable?: boolean
   formatOptionLabel?: (option: SelectOption) => ReactNode
@@ -96,6 +98,7 @@ export function AppSelect({
       formatOptionLabel={formatOptionLabel}
       menuPortalTarget={typeof document === 'undefined' ? undefined : document.body}
       menuPosition="fixed"
+      inputId={inputId}
       aria-invalid={invalid}
       aria-describedby={describedBy}
       onChange={(option) => onChange(option?.value ?? '')}

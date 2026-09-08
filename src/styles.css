@@ -549,12 +549,26 @@ button:active {
   border-radius: var(--size-5) var(--size-5) 0 0;
   background: var(--overlay-primary-strong);
 }
-.route-loading__chart i:nth-child(2) { height: 52%; }
-.route-loading__chart i:nth-child(3) { height: 42%; }
-.route-loading__chart i:nth-child(4) { height: 73%; background: var(--overlay-primary); }
-.route-loading__chart i:nth-child(5) { height: 60%; }
-.route-loading__chart i:nth-child(6) { height: 84%; background: var(--overlay-primary); }
-.route-loading__chart i:nth-child(7) { height: 66%; }
+.route-loading__chart i:nth-child(2) {
+  height: 52%;
+}
+.route-loading__chart i:nth-child(3) {
+  height: 42%;
+}
+.route-loading__chart i:nth-child(4) {
+  height: 73%;
+  background: var(--overlay-primary);
+}
+.route-loading__chart i:nth-child(5) {
+  height: 60%;
+}
+.route-loading__chart i:nth-child(6) {
+  height: 84%;
+  background: var(--overlay-primary);
+}
+.route-loading__chart i:nth-child(7) {
+  height: 66%;
+}
 .route-loading__side-card {
   background: linear-gradient(160deg, var(--shell-panel-2), var(--shell-panel));
 }
@@ -597,11 +611,17 @@ button:active {
   border: 0;
 }
 @keyframes route-loading-shimmer {
-  from { transform: translateX(-110%); }
-  to { transform: translateX(110%); }
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(110%);
+  }
 }
 @keyframes route-loading-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 .route-loading__line::after,
 .route-loading__nav-item i::after,
@@ -613,7 +633,12 @@ button:active {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.08) 50%, transparent 80%);
+  background: linear-gradient(
+    100deg,
+    transparent 20%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 80%
+  );
   animation: route-loading-shimmer 1.8s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1498,6 +1523,8 @@ h3 {
   --shell-expense: var(--color-expense-dark);
   --shell-warning: var(--color-warning-dark);
   --shell-indigo: var(--color-indigo-light);
+  --overlay-header: rgba(255, 255, 255, 0.88);
+  --overlay-table-header: rgba(226, 232, 240, 0.72);
 }
 .product-shell {
   display: flex;
@@ -1712,6 +1739,7 @@ h3 {
   font-size: var(--size-17);
   font-weight: 650;
   letter-spacing: -0.02em;
+  text-align: center;
 }
 .header__actions {
   display: flex;
@@ -2001,6 +2029,7 @@ h3 {
   border-radius: var(--space-4);
 }
 .widget--cashflow,
+.widget--daily-expenses,
 .widget--category,
 .widget--accounts,
 .widget--upcoming,
@@ -2047,6 +2076,40 @@ h3 {
 }
 .chart__legend-dot--expense {
   background: var(--shell-expense);
+}
+.chart__legend-dot--daily-expenses {
+  background: var(--shell-primary);
+}
+.widget--daily-expenses {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 88% 0%, var(--overlay-primary-muted), transparent 34%),
+    var(--shell-panel);
+}
+.chart__filter {
+  width: var(--size-170);
+  flex: 0 0 auto;
+}
+.daily-expenses__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  color: var(--shell-muted);
+  font-size: var(--size-10);
+}
+.daily-expenses__summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-5);
+}
+.daily-expenses__summary strong {
+  color: var(--shell-text);
+  font-size: var(--size-17);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
 }
 .breakdown__list {
   display: flex;
@@ -2335,7 +2398,6 @@ tbody tr:hover {
 .table__empty span {
   font-size: var(--size-11);
 }
-.account-summary,
 .recurring-overview {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -2415,6 +2477,11 @@ tbody tr:hover {
 .account-card__menu {
   position: relative;
 }
+
+.account-card__menu button {
+  background-color: transparent;
+}
+
 .account-card__menu-popover {
   position: absolute;
   top: calc(100% + var(--space-2));
@@ -2628,6 +2695,10 @@ tbody tr:hover {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+.analytics__grid--single {
+  grid-template-columns: 1fr;
 }
 .analytics__chart-card {
   min-height: var(--size-340);
@@ -2710,6 +2781,96 @@ tbody tr:hover {
   color: var(--shell-text);
   font-size: var(--size-15);
 }
+.category-badge {
+  --category-color: var(--shell-primary);
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--shell-text);
+  line-height: 1.2;
+}
+.category-badge--small {
+  gap: var(--space-1);
+  color: var(--category-color);
+  font-size: var(--size-11);
+}
+.category-badge--large {
+  color: var(--category-color);
+  font-size: var(--size-15);
+}
+.category-badge__dot {
+  width: var(--size-7);
+  height: var(--size-7);
+  flex: 0 0 auto;
+  border-radius: var(--radius-pill);
+  background: var(--category-color);
+  box-shadow: 0 0 0 var(--size-2) color-mix(in srgb, var(--category-color) 16%, transparent);
+}
+.category-badge__icon {
+  display: grid;
+  width: var(--size-26);
+  height: var(--size-26);
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: var(--space-2);
+  color: var(--category-color);
+  background: color-mix(in srgb, var(--category-color) 14%, transparent);
+}
+.category-badge__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.category-color-field {
+  gap: var(--space-3);
+}
+.category-color-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.category-color-option,
+.category-color-custom {
+  width: var(--size-26);
+  height: var(--size-26);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition:
+    transform var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard);
+}
+.category-color-option:hover,
+.category-color-option.is-selected,
+.category-color-custom:hover {
+  transform: scale(1.08);
+  box-shadow:
+    0 0 0 3px var(--shell-panel),
+    0 0 0 5px var(--shell-primary);
+}
+.category-color-option.is-selected {
+  border-color: var(--shell-text);
+}
+.category-color-custom {
+  position: relative;
+  overflow: hidden;
+  color: var(--shell-secondary);
+  background: var(--shell-panel-2);
+  border-color: var(--shell-border);
+}
+.category-color-custom input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
 .category-management__icon {
   width: var(--size-38);
   height: var(--size-38);
@@ -2727,10 +2888,23 @@ tbody tr:hover {
   color: var(--shell-secondary);
   font-size: var(--size-11);
 }
-.category-management__subcategories div {
+.category-management__subcategories > div {
   display: flex;
   align-items: center;
   gap: var(--space-1);
+}
+.category-management__subcategory {
+  justify-content: space-between;
+}
+.category-management__subcategory-name {
+  min-width: 0;
+  flex: 1;
+}
+.category-management__subcategory .account-card__menu {
+  flex: 0 0 auto;
+}
+.category-management__subcategory .account-card__menu > button {
+  padding: var(--size-3);
 }
 .labels__card {
   min-height: var(--size-155);
@@ -3020,6 +3194,172 @@ tbody tr:hover {
   font-size: var(--size-12);
   line-height: 1.55;
 }
+.date-range-filter {
+  min-width: 0;
+  overflow: hidden;
+}
+.date-range-filter__selection {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-3-5);
+  border: var(--size-1) solid var(--shell-border);
+  border-radius: var(--size-11);
+  background: var(--shell-panel-2);
+}
+.date-range-filter__selection span {
+  color: var(--shell-muted);
+  font-size: var(--size-10);
+  font-weight: 700;
+  letter-spacing: var(--tracking-044);
+  text-transform: uppercase;
+}
+.date-range-filter__selection strong {
+  min-width: 0;
+  color: var(--shell-text);
+  font-size: var(--size-11);
+  font-weight: 700;
+  text-align: right;
+}
+.date-range-filter .rdp-root {
+  width: 100%;
+  margin-top: var(--space-5);
+  color: var(--shell-secondary);
+  --rdp-accent-color: var(--shell-primary);
+  --rdp-accent-background-color: var(--overlay-primary);
+  --rdp-day_button-border: var(--size-1) solid transparent;
+  --rdp-day_button-border-radius: var(--size-10);
+  --rdp-day_button-height: var(--space-10);
+  --rdp-day_button-width: var(--space-10);
+  --rdp-day-height: var(--space-10);
+  --rdp-day-width: var(--space-11);
+  --rdp-months-gap: var(--space-8);
+  --rdp-nav-height: var(--space-10);
+  --rdp-nav_button-height: var(--space-8);
+  --rdp-nav_button-width: var(--space-8);
+  --rdp-range_end-date-background-color: var(--shell-primary);
+  --rdp-range_end-color: var(--color-primary-contrast);
+  --rdp-range_middle-background-color: var(--overlay-primary);
+  --rdp-range_start-color: var(--color-primary-contrast);
+  --rdp-range_start-date-background-color: var(--shell-primary);
+  --rdp-selected-border: var(--size-1) solid var(--shell-primary);
+  --rdp-today-color: var(--shell-primary);
+}
+.date-range-filter .rdp-months {
+  width: 100%;
+  max-width: none;
+  align-items: flex-start;
+  justify-content: center;
+}
+.date-range-filter .rdp-month {
+  min-width: 0;
+}
+.date-range-filter .rdp-month_grid {
+  width: 100%;
+  min-width: 0;
+  border-collapse: collapse;
+}
+.date-range-filter .rdp-month_grid th,
+.date-range-filter .rdp-month_grid td {
+  min-width: 0;
+  padding: 0;
+  border-top: 0;
+  text-align: center;
+  white-space: normal;
+}
+.date-range-filter .rdp-month_caption {
+  height: var(--space-10);
+  color: var(--shell-text);
+  font-size: var(--space-4);
+  letter-spacing: -0.025em;
+}
+.date-range-filter .rdp-caption_label {
+  font-weight: 750;
+}
+.date-range-filter .rdp-nav {
+  gap: var(--size-2);
+}
+.date-range-filter .rdp-button_next,
+.date-range-filter .rdp-button_previous {
+  border-radius: var(--size-10);
+  color: var(--shell-secondary);
+}
+.date-range-filter .rdp-button_next:hover,
+.date-range-filter .rdp-button_previous:hover {
+  color: var(--shell-text);
+  background: var(--overlay-primary);
+}
+.date-range-filter .rdp-chevron {
+  fill: currentColor;
+}
+.date-range-filter .rdp-weekday {
+  padding: var(--space-2) 0;
+  color: var(--shell-muted);
+  font-size: var(--size-10);
+  font-weight: 700;
+  text-transform: lowercase;
+}
+.date-range-filter .rdp-day {
+  padding: 0;
+  border-top: 0;
+  color: var(--shell-secondary);
+  font-size: var(--size-11);
+  font-weight: 600;
+  white-space: normal;
+}
+.date-range-filter .rdp-day_button {
+  margin-inline: auto;
+  color: inherit;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+}
+.date-range-filter .rdp-day_button:hover:not(:disabled) {
+  color: var(--shell-text);
+  background: var(--overlay-primary);
+}
+.date-range-filter .rdp-selected {
+  color: var(--shell-text);
+}
+.date-range-filter .rdp-range_start .rdp-day_button,
+.date-range-filter .rdp-range_end .rdp-day_button {
+  color: var(--color-primary-contrast);
+}
+.date-range-filter .rdp-range_middle {
+  color: var(--shell-text);
+}
+.date-range-filter .rdp-outside {
+  color: var(--shell-muted);
+}
+.date-range-filter .modal__actions {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: var(--size-1) solid var(--shell-border);
+}
+@media (max-width: 736px) {
+  .date-range-filter .rdp-months {
+    gap: 0;
+  }
+  .date-range-filter .rdp-month {
+    width: min(100%, 308px);
+    flex: 0 1 308px;
+  }
+  .date-range-filter .rdp-month_grid {
+    width: 100%;
+    max-width: 100%;
+    table-layout: fixed;
+  }
+  .date-range-filter .rdp-day {
+    width: auto;
+  }
+  .date-range-filter .rdp-day_button {
+    width: 100%;
+    max-width: var(--space-10);
+  }
+}
 .segmented-control {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -3206,6 +3546,7 @@ tbody tr:hover {
   }
   .sidebar.is-open {
     transform: translateX(0);
+    z-index: 13;
   }
   .sidebar__scrim {
     position: fixed;
@@ -3344,6 +3685,55 @@ tbody tr:hover {
     max-height: calc(100vh - var(--space-6));
     border-radius: var(--space-5);
   }
+  .modal__overlay--date-range {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal__card--date-range {
+    max-width: none !important;
+    max-height: calc(100vh - var(--space-2));
+    max-height: calc(100dvh - var(--space-2));
+    padding: var(--space-5) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom));
+    border-radius: var(--space-5) var(--space-5) 0 0;
+  }
+  .modal__card--date-range .modal__header {
+    margin-bottom: var(--space-4);
+  }
+  .date-range-filter .rdp-root {
+    --rdp-day-height: var(--space-10);
+    --rdp-day-width: var(--space-10);
+    --rdp-day_button-height: var(--space-9);
+    --rdp-day_button-width: var(--space-9);
+    --rdp-months-gap: 0;
+  }
+  .date-range-filter .rdp-months,
+  .date-range-filter .rdp-month {
+    width: 100%;
+  }
+  .date-range-filter .rdp-month_grid {
+    width: 100%;
+    table-layout: fixed;
+  }
+  .date-range-filter .rdp-day {
+    width: auto;
+  }
+  .date-range-filter__selection {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--size-5);
+  }
+  .date-range-filter__selection strong {
+    text-align: left;
+  }
+  .date-range-filter .modal__actions {
+    display: grid;
+    grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr);
+  }
+  .date-range-filter .modal__actions .button {
+    width: 100%;
+    min-width: 0;
+    padding-inline: var(--space-2);
+  }
   .form__grid--two {
     grid-template-columns: 1fr;
   }
@@ -3375,6 +3765,7 @@ tbody tr:hover {
     font-size: var(--size-10) !important;
   }
   .widget--cashflow,
+  .widget--daily-expenses,
   .widget--category,
   .widget--accounts,
   .widget--upcoming,
@@ -3424,6 +3815,21 @@ tbody tr:hover {
   border-bottom: 0;
   background: transparent;
   animation-delay: 90ms;
+}
+.chart--daily-expenses {
+  height: var(--space-62);
+  display: block;
+  overflow: visible;
+  padding: 0;
+  margin-top: var(--space-2);
+  background: transparent;
+  --chart-reveal-duration: 760ms;
+  animation-delay: 70ms;
+}
+.chart--daily-expenses .ts-chart-host,
+.chart--daily-expenses .ts-chart-surface {
+  overflow: visible;
+  color: var(--shell-secondary);
 }
 .chart--cashflow .ts-chart-host,
 .chart--cashflow .ts-chart-surface {

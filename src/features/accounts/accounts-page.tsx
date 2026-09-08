@@ -168,9 +168,6 @@ export function AccountsPage() {
           <span className="eyebrow">{t('accounts.totalInEur')}</span>
           <strong>{formatCurrency(total)}</strong>
         </div>
-        <div className="account-summary__note">
-          <Icon name="sparkles" size={17} /> {t('accounts.balanceFromTransactions')}
-        </div>
       </section>
       <div className="accounts__grid">
         {(accounts.data ?? []).map((account) => (
@@ -257,13 +254,6 @@ export function AccountsPage() {
           </article>
         ))}
       </div>
-      <article className="card panel--info">
-        <Icon name="sparkles" size={20} />
-        <div>
-          <h3>{t('accounts.accurateBalance')}</h3>
-          <p>{t('accounts.accurateBalanceDescription')}</p>
-        </div>
-      </article>
 
       <AppModal
         isOpen={accountModal !== null}

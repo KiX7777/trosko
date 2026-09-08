@@ -1,5 +1,5 @@
+import NumberFlow from '@number-flow/react'
 import { Icon } from './icon'
-import { formatCurrency } from '../../lib/format'
 
 export function MetricCard({
   label,
@@ -23,7 +23,17 @@ export function MetricCard({
         </span>
         {delta && <span className="metric-card__delta">{delta}</span>}
       </div>
-      <strong>{formatCurrency(value)}</strong>
+      <strong>
+        <NumberFlow
+          value={value}
+          locales="hr-HR"
+          format={{
+            style: 'currency',
+            currency: 'EUR',
+            maximumFractionDigits: 2,
+          }}
+        />
+      </strong>
     </article>
   )
 }

@@ -26,8 +26,11 @@ import { Button } from '../../components/ui/button'
 import { Icon } from '../../components/ui/icon'
 import { AppModal } from '../../components/ui/modal'
 import { StatusPill } from '../../components/ui/status'
+import { AppSelect } from '../../components/ui/select'
 import { useUIStore } from '../../stores/ui-store'
 import { t } from '../../lib/i18n'
+import { CategoryBadge } from '../../components/ui/category-badge'
+import { formatCategoryOption } from '../../components/ui/category-options'
 
 export function TransactionsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -104,7 +107,7 @@ export function TransactionsPage() {
     [accounts.data],
   )
   const categoryMap = useMemo(
-    () => new Map((categories.data ?? []).map((category) => [category.id, category.name])),
+    () => new Map((categories.data ?? []).map((category) => [category.id, category])),
     [categories.data],
   )
   const labelMap = useMemo(
@@ -167,7 +170,11 @@ export function TransactionsPage() {
         id: 'category',
         header: t('common.category'),
         cell: ({ row }) =>
-          row.original.categoryId ? (categoryMap.get(row.original.categoryId) ?? '—') : '—',
+          row.original.categoryId && categoryMap.get(row.original.categoryId) ? (
+            <CategoryBadge category={categoryMap.get(row.original.categoryId)!} size="small" />
+          ) : (
+            <span className="table__muted">—</span>
+          ),
       },
       {
         id: 'account',
@@ -430,19 +437,17 @@ export function TransactionsPage() {
             </label>
             <label className="form__field">
               <span>{t('common.category')}</span>
-              <select
+              <AppSelect
                 value={filterDraft.categoryId}
-                onChange={(event) =>
-                  setFilterDraft((draft) => ({ ...draft, categoryId: event.target.value }))
-                }
-              >
-                <option value="">{t('common.all')}</option>
-                {(categories.data ?? []).map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setFilterDraft((draft) => ({ ...draft, categoryId: value }))}
+                placeholder={t('common.all')}
+                options={(categories.data ?? []).map((category) => ({
+                  value: category.id,
+                  label: category.name,
+                }))}
+                formatOptionLabel={formatCategoryOption(categories.data ?? [])}
+                isClearable
+              />
             </label>
           </div>
           <div className="form__grid--two">

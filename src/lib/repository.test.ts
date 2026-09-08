@@ -1,10 +1,14 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   createRecurring,
+  deleteCategory,
+  getDashboardSummary,
+  getCategories,
   getAccounts,
   getRecurring,
   getTransactions,
   resetDemoData,
+  updateCategory,
   updateRecurring,
   updateTransaction,
 } from './repository'
@@ -62,6 +66,59 @@ describe('updateTransaction', () => {
     expect(transferEntries).toHaveLength(2)
     expect(transferEntries.map((transaction) => transaction.accountId)).toEqual(
       expect.arrayContaining(['account-current', 'account-savings']),
+    )
+  })
+})
+
+describe('categories', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    resetDemoData()
+  })
+
+  it('deletes a category together with its descendants and clears references', async () => {
+    await deleteCategory('category-food')
+
+    expect((await getCategories()).map((category) => category.id)).not.toEqual(
+      expect.arrayContaining(['category-food', 'category-groceries']),
+    )
+    expect((await getTransactions()).find((transaction) => transaction.id === 'tx-konzum')).toEqual(
+      expect.not.objectContaining({ categoryId: 'category-groceries' }),
+    )
+  })
+
+  it('updates the category details and parent', async () => {
+    const updated = await updateCategory({
+      id: 'category-groceries',
+      name: 'Kupovina namirnica',
+      type: 'expense',
+      icon: 'shopping-cart',
+      color: '#f59e0b',
+      parentId: 'category-housing',
+    })
+
+    expect(updated).toMatchObject({
+      id: 'category-groceries',
+      name: 'Kupovina namirnica',
+      parentId: 'category-housing',
+      color: '#f59e0b',
+    })
+  })
+
+  it('keeps dashboard totals on the category assigned to the transaction', async () => {
+    const summary = await getDashboardSummary('1M')
+
+    expect(summary.categoryBreakdown).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          categoryId: 'category-groceries',
+          name: 'Namirnice',
+          amount: 42.5,
+        }),
+      ]),
+    )
+    expect(summary.categoryBreakdown).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ categoryId: 'category-food' })]),
     )
   })
 })

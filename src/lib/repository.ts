@@ -297,17 +297,10 @@ function buildSummary(
     .filter((tx) => tx.type === 'income')
     .reduce((sum, tx) => sum + tx.amountBase, 0)
   const categoryTotals = categories
-    .filter((category) => category.type === 'expense' && !category.parentId)
+    .filter((category) => category.type === 'expense')
     .map((category) => {
       const amount = transactions
-        .filter(
-          (tx) =>
-            tx.type === 'expense' &&
-            (tx.categoryId === category.id ||
-              categories.some(
-                (child) => child.id === tx.categoryId && child.parentId === category.id,
-              )),
-        )
+        .filter((tx) => tx.type === 'expense' && tx.categoryId === category.id)
         .reduce((sum, tx) => sum + tx.amountBase, 0)
       return {
         categoryId: category.id,
@@ -597,6 +590,113 @@ export async function createCategory(
   }
   write('categories', [...categories, category])
   return delay(category)
+}
+
+export async function updateCategory(
+  input: Pick<Category, 'id' | 'name' | 'type' | 'icon' | 'color'> & { parentId?: string },
+): Promise<Category> {
+  if (supabase) {
+    const userId = await currentUserId()
+    const { data, error } = await client()
+      .from('categories')
+      .update({
+        name: input.name,
+        type: input.type,
+        icon: input.icon,
+        color: input.color,
+        parent_id: input.parentId ?? null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', input.id)
+      .eq('user_id', userId)
+      .select('*')
+      .single()
+    if (error) throw error
+    return mapCategory(data)
+  }
+
+  const categories = read('categories', demoCategories)
+  const current = categories.find((category) => category.id === input.id)
+  if (!current) throw new Error('Kategorija nije pronađena.')
+  const updated: Category = {
+    ...current,
+    name: input.name,
+    type: input.type,
+    icon: input.icon,
+    color: input.color,
+    parentId: input.parentId,
+    updatedAt: new Date().toISOString(),
+  }
+  write(
+    'categories',
+    categories.map((category) => (category.id === input.id ? updated : category)),
+  )
+  return delay(updated)
+}
+
+export async function deleteCategory(categoryId: string): Promise<void> {
+  if (supabase) {
+    const userId = await currentUserId()
+    const { data, error } = await client()
+      .from('categories')
+      .select('id, parent_id')
+      .eq('user_id', userId)
+    if (error) throw error
+
+    const ids = new Set([categoryId])
+    let added = true
+    while (added) {
+      added = false
+      for (const category of data ?? []) {
+        if (category.parent_id && ids.has(category.parent_id) && !ids.has(category.id)) {
+          ids.add(category.id)
+          added = true
+        }
+      }
+    }
+
+    const { error: deleteError } = await client()
+      .from('categories')
+      .delete()
+      .eq('user_id', userId)
+      .in('id', [...ids])
+    if (deleteError) throw deleteError
+    return
+  }
+
+  const categories = read('categories', demoCategories)
+  const ids = new Set([categoryId])
+  let added = true
+  while (added) {
+    added = false
+    for (const category of categories) {
+      if (category.parentId && ids.has(category.parentId) && !ids.has(category.id)) {
+        ids.add(category.id)
+        added = true
+      }
+    }
+  }
+
+  write(
+    'categories',
+    categories.filter((category) => !ids.has(category.id)),
+  )
+  const transactions = read('transactions', demoTransactions)
+  write(
+    'transactions',
+    transactions.map((transaction) =>
+      transaction.categoryId && ids.has(transaction.categoryId)
+        ? { ...transaction, categoryId: undefined }
+        : transaction,
+    ),
+  )
+  const recurring = read('recurring', demoRecurring)
+  write(
+    'recurring',
+    recurring.map((item) =>
+      item.categoryId && ids.has(item.categoryId) ? { ...item, categoryId: undefined } : item,
+    ),
+  )
 }
 
 export async function getLabels(): Promise<Label[]> {

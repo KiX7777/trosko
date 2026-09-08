@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { endOfMonth, format, startOfMonth, subMonths } from 'date-fns'
+import { hr } from 'date-fns/locale'
 import {
   getAccounts,
   getDashboardSummary,
@@ -10,15 +12,26 @@ import {
 } from '../../lib/repository'
 import { formatCurrency, formatRelativeDate } from '../../lib/format'
 import { Icon } from '../../components/ui/icon'
+import { CategoryBadge } from '../../components/ui/category-badge'
 import { MetricCard } from '../../components/ui/metric-card'
 import { StatusPill } from '../../components/ui/status'
 import { Page } from '../../components/ui/page'
-import { CashFlowChart, ExpenseBreakdownRailChart } from '../../components/ui/tanstack-charts'
+import {
+  CashFlowChart,
+  DailyExpenseChart,
+  ExpenseBreakdownRailChart,
+} from '../../components/ui/tanstack-charts'
+import { AppSelect, type SelectOption } from '../../components/ui/select'
 import { t } from '../../lib/i18n'
 import type { Period } from '../../types/domain'
 
 export function DashboardPage() {
   const [period, setPeriod] = useState<Period>('1M')
+  const currentMonth = format(new Date(), 'yyyy-MM')
+  const [expenseMonth, setExpenseMonth] = useState(currentMonth)
+  const expenseMonthDate = new Date(`${expenseMonth}-01T12:00:00`)
+  const expenseMonthStart = format(startOfMonth(expenseMonthDate), 'yyyy-MM-dd')
+  const expenseMonthEnd = format(endOfMonth(expenseMonthDate), 'yyyy-MM-dd')
   const summary = useQuery({
     queryKey: ['dashboard', period],
     queryFn: () => getDashboardSummary(period),
@@ -27,6 +40,15 @@ export function DashboardPage() {
   const transactions = useQuery({
     queryKey: ['transactions', { limit: 5 }],
     queryFn: () => getTransactions(),
+  })
+  const dailyExpenseTransactions = useQuery({
+    queryKey: ['transactions', 'daily-expenses', expenseMonth],
+    queryFn: () =>
+      getTransactions({
+        types: ['expense'],
+        dateFrom: expenseMonthStart,
+        dateTo: expenseMonthEnd,
+      }),
   })
   const recurring = useQuery({ queryKey: ['recurring'], queryFn: getRecurring })
   const profile = useQuery({ queryKey: ['profile'], queryFn: getProfile })
@@ -41,13 +63,27 @@ export function DashboardPage() {
       >[0],
     )
   const frequencyLabel = (frequency: string) => t(`common.${frequency}` as Parameters<typeof t>[0])
+  const expenseMonthOptions = useMemo<SelectOption[]>(
+    () =>
+      Array.from({ length: 12 }, (_, index) => {
+        const date = subMonths(new Date(), index)
+        return {
+          value: format(date, 'yyyy-MM'),
+          label: format(date, 'LLLL yyyy', { locale: hr }).replace(/^./, (letter) =>
+            letter.toUpperCase(),
+          ),
+        }
+      }),
+    [],
+  )
+  const expenseMonthLabel =
+    expenseMonthOptions.find((option) => option.value === expenseMonth)?.label ?? expenseMonth
   return (
     <Page
       eyebrow={monthLabel}
       title={t('dashboard.welcome', {
         name: profile.data?.displayName || profile.data?.email || t('dashboard.fallbackName'),
       })}
-      description={t('dashboard.description')}
       action={
         <div className="period-switcher">
           {(['7D', '1M', '3M', '6M', '1Y'] as Period[]).map((option) => (
@@ -99,6 +135,45 @@ export function DashboardPage() {
       </section>
 
       <section className="dashboard__grid">
+        <article className="card widget--daily-expenses">
+          <div className="section__title-row">
+            <div>
+              <h3>{t('dashboard.dailyExpenses')}</h3>
+              <p>{t('dashboard.dailyExpensesDescription')}</p>
+            </div>
+            <div className="chart__filter">
+              <label className="route-loading__sr-only" htmlFor="dashboard-expense-month">
+                {t('dashboard.expenseMonthFilter')}
+              </label>
+              <AppSelect
+                value={expenseMonth}
+                options={expenseMonthOptions}
+                onChange={setExpenseMonth}
+                placeholder={t('common.month')}
+                inputId="dashboard-expense-month"
+              />
+            </div>
+          </div>
+          <div className="daily-expenses__summary">
+            <span>
+              <i className="chart__legend-dot chart__legend-dot--daily-expenses" />
+              {expenseMonthLabel}
+            </span>
+            <strong>
+              {formatCurrency(
+                dailyExpenseTransactions.data?.reduce(
+                  (sum, transaction) => sum + transaction.amountBase,
+                  0,
+                ) ?? 0,
+              )}
+            </strong>
+          </div>
+          <DailyExpenseChart
+            transactions={dailyExpenseTransactions.data ?? []}
+            month={expenseMonth}
+            ariaLabel={t('dashboard.dailyExpenses')}
+          />
+        </article>
         <article className="card widget--cashflow">
           <div className="section__title-row">
             <div>
@@ -142,8 +217,7 @@ export function DashboardPage() {
           <div className="breakdown__list">
             {(data?.categoryBreakdown ?? []).slice(0, 4).map((item) => (
               <div className="breakdown__line" key={item.categoryId}>
-                <span className="breakdown__dot" style={{ background: item.color }} />
-                <span>{item.name}</span>
+                <CategoryBadge category={item} size="small" />
                 <strong>{formatCurrency(item.amount)}</strong>
               </div>
             ))}

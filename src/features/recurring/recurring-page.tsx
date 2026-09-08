@@ -22,6 +22,8 @@ import { FieldError, fieldClassName } from '../../components/ui/form-field'
 import { AppSelect } from '../../components/ui/select'
 import { t } from '../../lib/i18n'
 import type { RecurringTransaction } from '../../types/domain'
+import { CategoryBadge } from '../../components/ui/category-badge'
+import { formatCategoryOption } from '../../components/ui/category-options'
 
 const schema = z.object({
   description: z
@@ -60,6 +62,7 @@ export function RecurringPage() {
   const recurring = useQuery({ queryKey: ['recurring'], queryFn: getRecurring })
   const accounts = useQuery({ queryKey: ['accounts'], queryFn: () => getAccounts() })
   const categories = useQuery({ queryKey: ['categories'], queryFn: getCategories })
+  const categoryMap = new Map((categories.data ?? []).map((category) => [category.id, category]))
   const client = useQueryClient()
   const form = useForm<RecurringFormInput, unknown, RecurringFormOutput>({
     resolver: zodResolver(schema),
@@ -170,6 +173,7 @@ export function RecurringPage() {
               <tr>
                 <th>{t('common.name')}</th>
                 <th>{t('common.account')}</th>
+                <th>{t('common.category')}</th>
                 <th>{t('recurring.ritam')}</th>
                 <th>{t('recurring.next')}</th>
                 <th>{t('recurring.status')}</th>
@@ -198,6 +202,13 @@ export function RecurringPage() {
                   </td>
                   <td>
                     {accounts.data?.find((account) => account.id === item.accountId)?.name ?? '—'}
+                  </td>
+                  <td>
+                    {item.categoryId && categoryMap.get(item.categoryId) ? (
+                      <CategoryBadge category={categoryMap.get(item.categoryId)!} size="small" />
+                    ) : (
+                      <span className="table__muted">—</span>
+                    )}
                   </td>
                   <td>
                     {item.interval > 1
@@ -373,6 +384,7 @@ export function RecurringPage() {
                       value: category.id,
                       label: category.name,
                     }))}
+                    formatOptionLabel={formatCategoryOption(categories.data ?? [])}
                     isClearable
                   />
                 )}

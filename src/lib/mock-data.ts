@@ -89,7 +89,7 @@ export const demoCategories: Category[] = [
     parentId: 'category-food',
     name: 'Namirnice',
     icon: 'shopping-basket',
-    color: '#6bd8cb',
+    color: '#7bd5e8',
     type: 'expense',
     createdAt: now,
     updatedAt: now,
@@ -109,7 +109,7 @@ export const demoCategories: Category[] = [
     userId: demoUserId,
     name: 'Pretplate i servisi',
     icon: 'calendar-days',
-    color: '#4edea3',
+    color: '#f7a8c4',
     type: 'expense',
     createdAt: now,
     updatedAt: now,
@@ -119,7 +119,7 @@ export const demoCategories: Category[] = [
     userId: demoUserId,
     name: 'Prijevoz i gorivo',
     icon: 'fuel',
-    color: '#7bd5e8',
+    color: '#f59e0b',
     type: 'expense',
     createdAt: now,
     updatedAt: now,
@@ -129,7 +129,7 @@ export const demoCategories: Category[] = [
     userId: demoUserId,
     name: 'Plaća',
     icon: 'briefcase-business',
-    color: '#4edea3',
+    color: '#a78bfa',
     type: 'income',
     createdAt: now,
     updatedAt: now,
@@ -342,16 +342,12 @@ export function createDemoSummary(): DashboardSummary {
     .filter((tx) => tx.type === 'income')
     .reduce((sum, tx) => sum + tx.amountBase, 0)
   const categoryTotals = demoCategories
-    .filter((category) => category.type === 'expense' && !category.parentId)
+    .filter((category) => category.type === 'expense')
     .map((category) => ({
       categoryId: category.id,
       name: category.name,
       amount: demoTransactions
-        .filter(
-          (tx) =>
-            tx.categoryId === category.id ||
-            demoCategories.find((child) => child.id === tx.categoryId)?.parentId === category.id,
-        )
+        .filter((tx) => tx.categoryId === category.id)
         .reduce((sum, tx) => sum + (tx.type === 'expense' ? tx.amountBase : 0), 0),
       percentage: 0,
       color: category.color,

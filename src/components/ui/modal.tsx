@@ -13,12 +13,14 @@ export function AppModal({
   eyebrow,
   children,
   width = 520,
+  className = '',
 }: PropsWithChildren<{
   isOpen: boolean
   onRequestClose: () => void
   title: string
   eyebrow?: string
   width?: number
+  className?: string
 }>) {
   return (
     <Modal
@@ -28,14 +30,14 @@ export function AppModal({
       shouldCloseOnOverlayClick
       closeTimeoutMS={220}
       className={{
-        base: 'modal__card',
-        afterOpen: 'modal__card--open',
-        beforeClose: 'modal__card--closing',
+        base: `modal__card ${className}`.trim(),
+        afterOpen: `modal__card--open ${className}`.trim(),
+        beforeClose: `modal__card--closing ${className}`.trim(),
       }}
       overlayClassName={{
-        base: 'modal__overlay',
-        afterOpen: 'modal__overlay--open',
-        beforeClose: 'modal__overlay--closing',
+        base: `modal__overlay ${className ? `${className}--overlay` : ''}`.trim(),
+        afterOpen: `modal__overlay--open ${className ? `${className}--overlay` : ''}`.trim(),
+        beforeClose: `modal__overlay--closing ${className ? `${className}--overlay` : ''}`.trim(),
       }}
       style={{ content: { maxWidth: width } }}
     >
