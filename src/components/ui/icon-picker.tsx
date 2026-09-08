@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from 'react'
 import {
   Activity,
   Apple,
@@ -40,7 +39,8 @@ import {
   Zap,
   type LucideIcon,
 } from 'lucide-react'
-import { Icon } from './icon'
+import type { ReactNode } from 'react'
+import { AppSelect, type SelectOption } from './select'
 import { t } from '../../lib/i18n'
 
 export const categoryIconOptions = [
@@ -84,6 +84,23 @@ export const categoryIconOptions = [
   { name: 'zap', component: Zap },
 ] satisfies ReadonlyArray<{ name: string; component: LucideIcon }>
 
+const iconOptions: SelectOption[] = categoryIconOptions.map(({ name }) => ({
+  value: name,
+  label: name,
+}))
+
+function formatIconOption(option: SelectOption): ReactNode {
+  const IconComponent = categoryIconOptions.find(({ name }) => name === option.value)?.component
+  if (!IconComponent) return option.label
+
+  return (
+    <span className="icon-picker__option-label">
+      <IconComponent size={19} strokeWidth={1.8} aria-hidden="true" />
+      <span>{option.label}</span>
+    </span>
+  )
+}
+
 export function IconPicker({
   value,
   onChange,
@@ -97,61 +114,19 @@ export function IconPicker({
   invalid?: boolean
   describedBy?: string
 }) {
-  const [open, setOpen] = useState(false)
-  const pickerRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-
-    function handlePointerDown(event: PointerEvent) {
-      if (!pickerRef.current?.contains(event.target as Node)) setOpen(false)
-    }
-
-    document.addEventListener('pointerdown', handlePointerDown)
-    return () => document.removeEventListener('pointerdown', handlePointerDown)
-  }, [open])
-
-  function selectIcon(name: string) {
-    onChange(name)
-    setOpen(false)
-    onBlur()
-  }
-
   return (
-    <div className="icon-picker" ref={pickerRef}>
-      <button
-        type="button"
-        className={`icon-picker__trigger${invalid ? ' field--invalid' : ''}`}
-        aria-label={t('categories.chooseIcon')}
-        aria-describedby={describedBy}
-        aria-expanded={open}
-        aria-haspopup="listbox"
-        onClick={() => setOpen((current) => !current)}
+    <div className="icon-picker">
+      <AppSelect
+        value={value}
+        options={iconOptions}
+        onChange={onChange}
         onBlur={onBlur}
-      >
-        <Icon name={value} size={21} />
-        <span>{t('categories.chooseIcon')}</span>
-        <Icon name="chevron-down" size={16} />
-      </button>
-      {open && (
-        <div className="icon-picker__menu" role="listbox" aria-label={t('categories.chooseIcon')}>
-          {categoryIconOptions.map(({ name, component: Component }) => (
-            <button
-              type="button"
-              role="option"
-              aria-selected={value === name}
-              aria-label={name}
-              className={`icon-picker__option${value === name ? ' is-selected' : ''}`}
-              key={name}
-              title={name}
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => selectIcon(name)}
-            >
-              <Component size={21} strokeWidth={1.8} aria-hidden="true" />
-            </button>
-          ))}
-        </div>
-      )}
+        placeholder={t('categories.chooseIcon')}
+        invalid={invalid}
+        describedBy={describedBy}
+        isSearchable
+        formatOptionLabel={formatIconOption}
+      />
     </div>
   )
 }

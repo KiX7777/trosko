@@ -108,6 +108,15 @@ export interface RecurringTransaction {
   updatedAt: string
 }
 
+export type CreateRecurringInput = Omit<
+  RecurringTransaction,
+  'id' | 'userId' | 'createdAt' | 'updatedAt'
+>
+
+export interface UpdateRecurringInput extends CreateRecurringInput {
+  id: string
+}
+
 export interface Receipt {
   id: string
   userId: string
@@ -141,7 +150,7 @@ export interface DashboardSummary {
   expenses: number
   netCashFlow: number
   previousNetCashFlow: number
-  cashFlow: Array<{ label: string; income: number; expenses: number }>
+  cashFlow: Array<{ date: string; income: number; expenses: number }>
   categoryBreakdown: Array<{
     categoryId: string
     name: string
@@ -178,4 +187,8 @@ export interface CreateAccountInput {
   currency: string
   initialBalance: number
   color: string
+}
+
+export interface UpdateAccountInput extends CreateAccountInput {
+  id: string
 }

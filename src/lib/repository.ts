@@ -8,19 +8,32 @@ import {
   demoUserId,
 } from './mock-data'
 import { supabase } from './supabase'
-import { addDays, addMonths, addWeeks, addYears, formatISO, parseISO } from 'date-fns'
+import {
+  addDays,
+  addMonths,
+  addWeeks,
+  addYears,
+  differenceInCalendarDays,
+  format,
+  formatISO,
+  parseISO,
+} from 'date-fns'
 import type {
   Account,
   Category,
   CreateAccountInput,
   CreateTransactionInput,
   DashboardSummary,
+  CreateRecurringInput,
   Label,
+  Period,
   Profile,
   RecurringTransaction,
   SavedView,
   Transaction,
   TransactionFilters,
+  UpdateAccountInput,
+  UpdateRecurringInput,
   UpdateTransactionInput,
 } from '../types/domain'
 
@@ -275,6 +288,7 @@ function buildSummary(
   transactions: Transaction[],
   accounts: Account[],
   categories: Category[],
+  cashFlowRange?: Pick<TransactionFilters, 'dateFrom' | 'dateTo'>,
 ): DashboardSummary {
   const expenses = transactions
     .filter((tx) => tx.type === 'expense')
@@ -314,14 +328,17 @@ function buildSummary(
         count: current.count + 1,
       })
     })
-  const today = new Date()
-  const cashFlow = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(today)
-    date.setDate(today.getDate() - (6 - index))
-    const iso = date.toISOString().slice(0, 10)
+  const cashFlowEnd = cashFlowRange?.dateTo ? parseISO(cashFlowRange.dateTo) : new Date()
+  const cashFlowStart = cashFlowRange?.dateFrom
+    ? parseISO(cashFlowRange.dateFrom)
+    : addDays(cashFlowEnd, -6)
+  const cashFlowDays = Math.max(differenceInCalendarDays(cashFlowEnd, cashFlowStart) + 1, 0)
+  const cashFlow = Array.from({ length: cashFlowDays }, (_, index) => {
+    const date = addDays(cashFlowStart, index)
+    const iso = formatISO(date, { representation: 'date' })
     const dayTransactions = transactions.filter((tx) => tx.transactionDate === iso)
     return {
-      label: new Intl.DateTimeFormat('hr-HR', { weekday: 'short' }).format(date).replace('.', ''),
+      date: format(date, 'yyyy-MM-dd'),
       income: dayTransactions
         .filter((tx) => tx.type === 'income')
         .reduce((sum, tx) => sum + tx.amountBase, 0),
@@ -448,6 +465,71 @@ export async function createAccount(input: CreateAccountInput): Promise<Account>
   }
   write('accounts', [...accounts, account])
   return delay(account)
+}
+
+export async function updateAccount(input: UpdateAccountInput): Promise<Account> {
+  if (supabase) {
+    const userId = await currentUserId()
+    const { data, error } = await client()
+      .from('accounts')
+      .update({
+        name: input.name,
+        type: input.type,
+        currency: input.currency,
+        initial_balance: input.initialBalance,
+        color: input.color,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', input.id)
+      .eq('user_id', userId)
+      .select('*')
+      .single()
+    if (error) throw error
+    return mapAccount(data)
+  }
+
+  const accounts = read('accounts', demoAccounts)
+  const current = accounts.find((account) => account.id === input.id)
+  if (!current) throw new Error('Račun nije pronađen.')
+  const updated: Account = {
+    ...current,
+    ...input,
+    balance: current.balance,
+    updatedAt: new Date().toISOString(),
+  }
+  write(
+    'accounts',
+    accounts.map((account) => (account.id === input.id ? updated : account)),
+  )
+  return delay(updated)
+}
+
+export async function updateAccountBalanceManually(
+  accountId: string,
+  balance: number,
+): Promise<Account> {
+  if (supabase) {
+    const userId = await currentUserId()
+    const { data, error } = await client()
+      .from('accounts')
+      .update({ balance, updated_at: new Date().toISOString() })
+      .eq('id', accountId)
+      .eq('user_id', userId)
+      .select('*')
+      .single()
+    if (error) throw error
+    return mapAccount(data)
+  }
+
+  const accounts = read('accounts', demoAccounts)
+  const updated = accounts.find((account) => account.id === accountId)
+  if (!updated) throw new Error('Račun nije pronađen.')
+  const nextAccount = { ...updated, balance, updatedAt: new Date().toISOString() }
+  write(
+    'accounts',
+    accounts.map((account) => (account.id === accountId ? nextAccount : account)),
+  )
+  return delay(nextAccount)
 }
 
 export async function archiveAccount(accountId: string): Promise<void> {
@@ -990,9 +1072,7 @@ export async function getRecurring(): Promise<RecurringTransaction[]> {
   return delay(read('recurring', demoRecurring))
 }
 
-export async function createRecurring(
-  input: Omit<RecurringTransaction, 'id' | 'userId' | 'createdAt' | 'updatedAt'>,
-): Promise<RecurringTransaction> {
+export async function createRecurring(input: CreateRecurringInput): Promise<RecurringTransaction> {
   if (supabase) {
     const userId = await currentUserId()
     const { data, error } = await client()
@@ -1000,7 +1080,7 @@ export async function createRecurring(
       .insert({
         user_id: userId,
         account_id: input.accountId,
-        category_id: input.categoryId ?? null,
+        category_id: input.categoryId || null,
         type: input.type,
         amount: input.amount,
         currency: input.currency,
@@ -1031,20 +1111,82 @@ export async function createRecurring(
   return delay(template)
 }
 
-export async function getDashboardSummary(): Promise<DashboardSummary> {
+export async function updateRecurring(input: UpdateRecurringInput): Promise<RecurringTransaction> {
+  if (supabase) {
+    const userId = await currentUserId()
+    const { data, error } = await client()
+      .from('recurring_transactions')
+      .update({
+        account_id: input.accountId,
+        category_id: input.categoryId || null,
+        type: input.type,
+        amount: input.amount,
+        currency: input.currency,
+        frequency: input.frequency,
+        interval: input.interval,
+        start_date: input.startDate,
+        next_run_at: input.nextRunAt,
+        end_date: input.endDate ?? null,
+        active: input.active,
+        auto_log: input.autoLog,
+        description: input.description,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', input.id)
+      .eq('user_id', userId)
+      .select('*')
+      .single()
+    if (error) throw error
+    return mapRecurring(data)
+  }
+
+  const recurring = read('recurring', demoRecurring)
+  const current = recurring.find((item) => item.id === input.id)
+  if (!current) throw new Error('Ponavljanje nije pronađeno.')
+  const updated: RecurringTransaction = {
+    ...current,
+    ...input,
+    updatedAt: new Date().toISOString(),
+  }
+  write(
+    'recurring',
+    recurring.map((item) => (item.id === input.id ? updated : item)),
+  )
+  return delay(updated)
+}
+
+function getPeriodStart(period: Period) {
+  const start = new Date()
+  if (period === '7D') start.setDate(start.getDate() - 6)
+  if (period === '1M') start.setMonth(start.getMonth() - 1)
+  if (period === '3M') start.setMonth(start.getMonth() - 3)
+  if (period === '6M') start.setMonth(start.getMonth() - 6)
+  if (period === '1Y') start.setFullYear(start.getFullYear() - 1)
+  return start.toISOString().slice(0, 10)
+}
+
+export async function getDashboardSummary(
+  periodOrFilters: Period | Pick<TransactionFilters, 'dateFrom' | 'dateTo'> = '1M',
+): Promise<DashboardSummary> {
+  const filters =
+    typeof periodOrFilters === 'string'
+      ? { dateFrom: getPeriodStart(periodOrFilters) }
+      : periodOrFilters
+  const cashFlowRange = typeof periodOrFilters === 'string' ? undefined : filters
   if (supabase) {
     const [transactions, accounts, categories] = await Promise.all([
-      getTransactions(),
+      getTransactions(filters),
       getAccounts(),
       getCategories(),
     ])
-    return buildSummary(transactions, accounts, categories)
+    return buildSummary(transactions, accounts, categories, cashFlowRange)
   }
   return delay(
     buildSummary(
-      read('transactions', demoTransactions),
+      applyTransactionFilters(read('transactions', demoTransactions), filters),
       read('accounts', demoAccounts),
       read('categories', demoCategories),
+      cashFlowRange,
     ),
   )
 }

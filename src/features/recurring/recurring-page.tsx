@@ -4,7 +4,13 @@ import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'react-toastify'
 import { z } from 'zod'
-import { createRecurring, getAccounts, getCategories, getRecurring } from '../../lib/repository'
+import {
+  createRecurring,
+  getAccounts,
+  getCategories,
+  getRecurring,
+  updateRecurring,
+} from '../../lib/repository'
 import { formatCurrency, formatDate } from '../../lib/format'
 import { Page } from '../../components/ui/page'
 import { Button } from '../../components/ui/button'
@@ -15,6 +21,7 @@ import { CurrencyInput } from '../../components/ui/currency-input'
 import { FieldError, fieldClassName } from '../../components/ui/form-field'
 import { AppSelect } from '../../components/ui/select'
 import { t } from '../../lib/i18n'
+import type { RecurringTransaction } from '../../types/domain'
 
 const schema = z.object({
   description: z
@@ -31,12 +38,25 @@ const schema = z.object({
   startDate: z.string().min(1, t('validation.invalidDate')),
   nextRunAt: z.string().min(1, t('validation.invalidDate')),
   autoLog: z.boolean(),
+  active: z.boolean(),
 })
 type RecurringFormInput = z.input<typeof schema>
 type RecurringFormOutput = z.output<typeof schema>
 
+const defaultFormValues = {
+  type: 'expense',
+  frequency: 'monthly',
+  interval: 1,
+  startDate: '2026-09-07',
+  nextRunAt: '2026-10-07',
+  amount: 0,
+  autoLog: false,
+  active: true,
+} satisfies Partial<RecurringFormInput>
+
 export function RecurringPage() {
   const [open, setOpen] = useState(false)
+  const [editingRecurring, setEditingRecurring] = useState<RecurringTransaction | null>(null)
   const recurring = useQuery({ queryKey: ['recurring'], queryFn: getRecurring })
   const accounts = useQuery({ queryKey: ['accounts'], queryFn: () => getAccounts() })
   const categories = useQuery({ queryKey: ['categories'], queryFn: getCategories })
@@ -45,33 +65,59 @@ export function RecurringPage() {
     resolver: zodResolver(schema),
     mode: 'onBlur',
     reValidateMode: 'onChange',
-    defaultValues: {
-      type: 'expense',
-      frequency: 'monthly',
-      interval: 1,
-      startDate: '2026-09-07',
-      nextRunAt: '2026-10-07',
-      amount: 0,
-      autoLog: false,
-    },
+    defaultValues: defaultFormValues,
   })
   const mutation = useMutation({
-    mutationFn: createRecurring,
-    onSuccess: () => {
+    mutationFn: ({
+      item,
+      values,
+    }: {
+      item: RecurringTransaction | null
+      values: RecurringFormOutput
+    }) =>
+      item
+        ? updateRecurring({
+            id: item.id,
+            ...values,
+            currency: item.currency,
+          })
+        : createRecurring({
+            ...values,
+            currency: 'EUR',
+          }),
+    onSuccess: (_data, variables) => {
       void client.invalidateQueries({ queryKey: ['recurring'] })
       setOpen(false)
-      form.reset({
-        type: 'expense',
-        frequency: 'monthly',
-        interval: 1,
-        startDate: '2026-09-07',
-        nextRunAt: '2026-10-07',
-        amount: 0,
-        autoLog: false,
-      })
-      toast.success(t('recurring.save'))
+      setEditingRecurring(null)
+      form.reset(defaultFormValues)
+      toast.success(t(variables.item ? 'recurring.updated' : 'recurring.save'))
+    },
+    onError: () => {
+      toast.error(t('recurring.error'))
     },
   })
+  const openNewRecurring = () => {
+    setEditingRecurring(null)
+    form.reset(defaultFormValues)
+    setOpen(true)
+  }
+  const openEditRecurring = (item: RecurringTransaction) => {
+    setEditingRecurring(item)
+    form.reset({
+      description: item.description,
+      type: item.type,
+      amount: item.amount,
+      accountId: item.accountId,
+      categoryId: item.categoryId,
+      frequency: item.frequency,
+      interval: item.interval,
+      startDate: item.startDate,
+      nextRunAt: item.nextRunAt,
+      autoLog: item.autoLog,
+      active: item.active,
+    })
+    setOpen(true)
+  }
   const frequencyLabel = (frequency: string) => t(`common.${frequency}` as Parameters<typeof t>[0])
   return (
     <Page
@@ -79,7 +125,7 @@ export function RecurringPage() {
       title={t('recurring.title')}
       description={t('recurring.description')}
       action={
-        <Button variant="primary" onClick={() => setOpen(true)}>
+        <Button variant="primary" onClick={openNewRecurring}>
           <Icon name="plus" size={17} /> {t('recurring.new')}
         </Button>
       }
@@ -179,7 +225,11 @@ export function RecurringPage() {
                     </strong>
                   </td>
                   <td>
-                    <Button variant="icon" aria-label={t('aria.edit', { name: item.description })}>
+                    <Button
+                      variant="icon"
+                      aria-label={t('aria.edit', { name: item.description })}
+                      onClick={() => openEditRecurring(item)}
+                    >
                       <Icon name="pencil" size={16} />
                     </Button>
                   </td>
@@ -193,12 +243,12 @@ export function RecurringPage() {
         isOpen={open}
         onRequestClose={() => setOpen(false)}
         eyebrow={t('recurring.templateEyebrow')}
-        title={t('recurring.newPayment')}
+        title={t(editingRecurring ? 'recurring.editPayment' : 'recurring.newPayment')}
       >
         <form
           className="form__stack"
           onSubmit={form.handleSubmit((values) =>
-            mutation.mutate({ ...values, currency: 'EUR', active: true }),
+            mutation.mutate({ item: editingRecurring, values }),
           )}
         >
           <label className="form__field">
@@ -316,7 +366,7 @@ export function RecurringPage() {
                 render={({ field }) => (
                   <AppSelect
                     value={field.value}
-                    onChange={field.onChange}
+                    onChange={(value) => field.onChange(value || undefined)}
                     onBlur={field.onBlur}
                     placeholder={t('common.noCategory')}
                     options={(categories.data ?? []).map((category) => ({
@@ -366,12 +416,21 @@ export function RecurringPage() {
               <small>{t('recurring.autoLogDescription')}</small>
             </span>
           </label>
+          <label className="recurring__auto-log">
+            <input type="checkbox" {...form.register('active')} />
+            <span>
+              <strong>{t('recurring.active')}</strong>
+              <small>{t('recurring.activeDescription')}</small>
+            </span>
+          </label>
           <div className="modal__actions">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
               {t('common.cancel')}
             </Button>
-            <Button type="submit" variant="primary">
-              {t('recurring.save')}
+            <Button type="submit" variant="primary" disabled={mutation.isPending}>
+              {mutation.isPending
+                ? t('recurring.saving')
+                : t(editingRecurring ? 'recurring.update' : 'recurring.save')}
             </Button>
           </div>
         </form>

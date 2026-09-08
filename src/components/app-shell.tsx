@@ -112,7 +112,6 @@ export function AppShell() {
               <span>
                 <strong>{displayName}</strong>
               </span>
-              <Icon name="more" size={16} />
             </div>
             {profileMenuOpen && (
               <div className="user-menu__popover" role="menu">

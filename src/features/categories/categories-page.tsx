@@ -20,7 +20,10 @@ const schema = z.object({
   type: z.enum(['expense', 'income']),
   icon: z.string().min(1, t('validation.required')),
   color: z.string(),
-  parentId: z.string().transform((value) => value || undefined),
+  parentId: z
+    .string()
+    .optional()
+    .transform((value) => value || undefined),
 })
 type CategoryFormInput = z.input<typeof schema>
 type CategoryFormOutput = z.output<typeof schema>
@@ -33,15 +36,18 @@ export function CategoriesPage() {
     resolver: zodResolver(schema),
     mode: 'onBlur',
     reValidateMode: 'onChange',
-    defaultValues: { type: 'expense', icon: 'sparkles', color: '#6bd8cb' },
+    defaultValues: { type: 'expense', icon: 'sparkles', color: '#6bd8cb', parentId: '' },
   })
   const mutation = useMutation({
     mutationFn: createCategory,
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: ['categories'] })
       setOpen(false)
-      form.reset({ type: 'expense', icon: 'sparkles', color: '#6bd8cb' })
+      form.reset({ type: 'expense', icon: 'sparkles', color: '#6bd8cb', parentId: '' })
       toast.success(t('categories.new'))
+    },
+    onError: () => {
+      toast.error(t('categories.error'))
     },
   })
   const roots = categories.data?.filter((category) => !category.parentId) ?? []
@@ -172,8 +178,8 @@ export function CategoriesPage() {
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
               {t('common.cancel')}
             </Button>
-            <Button type="submit" variant="primary">
-              {t('categories.save')}
+            <Button type="submit" variant="primary" disabled={mutation.isPending}>
+              {mutation.isPending ? t('categories.saving') : t('categories.save')}
             </Button>
           </div>
         </form>

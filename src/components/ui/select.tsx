@@ -1,4 +1,5 @@
 import Select, { type StylesConfig } from 'react-select'
+import type { ReactNode } from 'react'
 
 export type SelectOption = {
   label: string
@@ -34,7 +35,7 @@ const selectStyles: StylesConfig<SelectOption, false> = {
   clearIndicator: (base) => ({ ...base, color: 'var(--shell-muted)' }),
   menu: (base) => ({
     ...base,
-    zIndex: 20,
+    zIndex: 1,
     overflow: 'hidden',
     border: '1px solid var(--shell-border)',
     borderRadius: 12,
@@ -42,6 +43,7 @@ const selectStyles: StylesConfig<SelectOption, false> = {
     boxShadow: '0 14px 34px rgba(0, 0, 0, 0.35)',
   }),
   menuList: (base) => ({ ...base, padding: 5 }),
+  menuPortal: (base) => ({ ...base, zIndex: 1000 }),
   option: (base, state) => ({
     ...base,
     borderRadius: 8,
@@ -66,6 +68,7 @@ export function AppSelect({
   describedBy,
   isSearchable = false,
   isClearable = false,
+  formatOptionLabel,
 }: {
   value?: string
   options: readonly SelectOption[]
@@ -76,6 +79,7 @@ export function AppSelect({
   describedBy?: string
   isSearchable?: boolean
   isClearable?: boolean
+  formatOptionLabel?: (option: SelectOption) => ReactNode
 }) {
   const selectedOption = options.find((option) => option.value === value) ?? null
 
@@ -89,6 +93,7 @@ export function AppSelect({
       placeholder={placeholder}
       isSearchable={isSearchable}
       isClearable={isClearable}
+      formatOptionLabel={formatOptionLabel}
       menuPortalTarget={typeof document === 'undefined' ? undefined : document.body}
       menuPosition="fixed"
       aria-invalid={invalid}

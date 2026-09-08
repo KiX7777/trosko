@@ -26,8 +26,17 @@ export function AppModal({
       onRequestClose={onRequestClose}
       shouldCloseOnEsc
       shouldCloseOnOverlayClick
-      className="modal__card"
-      overlayClassName="modal__overlay"
+      closeTimeoutMS={220}
+      className={{
+        base: 'modal__card',
+        afterOpen: 'modal__card--open',
+        beforeClose: 'modal__card--closing',
+      }}
+      overlayClassName={{
+        base: 'modal__overlay',
+        afterOpen: 'modal__overlay--open',
+        beforeClose: 'modal__overlay--closing',
+      }}
       style={{ content: { maxWidth: width } }}
     >
       <div className="modal__header">

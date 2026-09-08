@@ -1,11 +1,17 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { format, subMonths } from 'date-fns'
+import { hr } from 'date-fns/locale'
+import { DayPicker, type DateRange } from 'react-day-picker'
+import 'react-day-picker/style.css'
 import { getDashboardSummary } from '../../lib/repository'
 import { formatCurrency } from '../../lib/format'
 import { Page } from '../../components/ui/page'
 import { MetricCard } from '../../components/ui/metric-card'
 import { Icon } from '../../components/ui/icon'
+import { AppModal } from '../../components/ui/modal'
+import { Button } from '../../components/ui/button'
 import {
   CashFlowChart,
   ExpenseDistributionChart,
@@ -23,9 +29,34 @@ const tabs = [
   'analytics.tabLabels',
 ] as const
 
+function toDateValue(date: Date | undefined) {
+  return date ? format(date, 'yyyy-MM-dd') : undefined
+}
+
+function formatRangeLabel(range: DateRange | undefined) {
+  if (!range?.from) return t('analytics.chooseDateRange')
+  const from = format(range.from, 'dd. MMM yyyy.', { locale: hr })
+  const to = range.to ? format(range.to, 'dd. MMM yyyy.', { locale: hr }) : '…'
+  return `${from} – ${to}`
+}
+
 export function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>(tabs[0])
-  const summary = useQuery({ queryKey: ['analytics', activeTab], queryFn: getDashboardSummary })
+  const defaultRange = useMemo<DateRange>(
+    () => ({ from: subMonths(new Date(), 1), to: new Date() }),
+    [],
+  )
+  const [filterOpen, setFilterOpen] = useState(false)
+  const [draftRange, setDraftRange] = useState<DateRange | undefined>(defaultRange)
+  const [dateRange, setDateRange] = useState<DateRange>(defaultRange)
+  const summary = useQuery({
+    queryKey: ['analytics', toDateValue(dateRange.from), toDateValue(dateRange.to)],
+    queryFn: () =>
+      getDashboardSummary({
+        dateFrom: toDateValue(dateRange.from),
+        dateTo: toDateValue(dateRange.to),
+      }),
+  })
   const data = summary.data
   return (
     <Page
@@ -33,8 +64,18 @@ export function AnalyticsPage() {
       title={t('analytics.title')}
       description={t('analytics.description')}
       action={
-        <button className="button--date-range">
-          <Icon name="calendar-days" size={16} /> {t('analytics.september')}{' '}
+        <button
+          className="button--date-range"
+          type="button"
+          aria-label={`${t('analytics.dateRange')}: ${formatRangeLabel(dateRange)}`}
+          aria-haspopup="dialog"
+          aria-expanded={filterOpen}
+          onClick={() => {
+            setDraftRange(dateRange)
+            setFilterOpen(true)
+          }}
+        >
+          <Icon name="calendar-days" size={16} /> {formatRangeLabel(dateRange)}
           <Icon name="chevron-down" size={15} />
         </button>
       }
@@ -145,6 +186,8 @@ export function AnalyticsPage() {
                 <div className="merchant__value">
                   <strong>{formatCurrency(merchant.amount)}</strong>
                   <MerchantProgressChart
+                    merchant={merchant.merchant}
+                    count={merchant.count}
                     amount={merchant.amount}
                     maxAmount={data?.topMerchants[0]?.amount ?? merchant.amount}
                     ariaLabel={`${merchant.merchant}: ${formatCurrency(merchant.amount)}`}
@@ -155,6 +198,47 @@ export function AnalyticsPage() {
           </div>
         </article>
       </section>
+      <AppModal
+        isOpen={filterOpen}
+        onRequestClose={() => setFilterOpen(false)}
+        eyebrow={t('analytics.filterEyebrow')}
+        title={t('analytics.filterTitle')}
+        width={760}
+      >
+        <div className="date-range-filter">
+          <p className="modal__description">{t('analytics.filterDescription')}</p>
+          <div className="date-range-filter__selection" aria-live="polite">
+            <span>{t('analytics.selectedRange')}</span>
+            <strong>{formatRangeLabel(draftRange)}</strong>
+          </div>
+          <DayPicker
+            mode="range"
+            locale={hr}
+            selected={draftRange}
+            onSelect={setDraftRange}
+            defaultMonth={draftRange?.from ?? new Date()}
+            numberOfMonths={2}
+            showOutsideDays
+          />
+          <div className="modal__actions">
+            <Button variant="ghost" type="button" onClick={() => setFilterOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              variant="primary"
+              type="button"
+              disabled={!draftRange?.from || !draftRange.to}
+              onClick={() => {
+                if (!draftRange?.from || !draftRange.to) return
+                setDateRange(draftRange)
+                setFilterOpen(false)
+              }}
+            >
+              <Icon name="filter" size={15} /> {t('analytics.applyFilter')}
+            </Button>
+          </div>
+        </div>
+      </AppModal>
     </Page>
   )
 }

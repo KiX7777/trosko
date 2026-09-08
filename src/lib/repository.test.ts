@@ -5,6 +5,7 @@ import {
   getRecurring,
   getTransactions,
   resetDemoData,
+  updateRecurring,
   updateTransaction,
 } from './repository'
 
@@ -132,6 +133,37 @@ describe('recurring auto-log', () => {
       active: true,
       autoLog: false,
       nextRunAt: '2020-01-01',
+    })
+  })
+
+  it('updates an existing recurring template', async () => {
+    const updated = await updateRecurring({
+      id: 'rec-netflix',
+      accountId: 'account-current',
+      categoryId: 'category-subscriptions',
+      type: 'expense',
+      amount: 17.99,
+      currency: 'EUR',
+      frequency: 'monthly',
+      interval: 1,
+      startDate: '2026-01-09',
+      nextRunAt: '2026-09-12',
+      active: false,
+      autoLog: false,
+      description: 'Netflix Premium',
+    })
+
+    expect(updated).toMatchObject({
+      id: 'rec-netflix',
+      amount: 17.99,
+      description: 'Netflix Premium',
+      active: false,
+      autoLog: false,
+      nextRunAt: '2026-09-12',
+    })
+    expect((await getRecurring()).find((item) => item.id === 'rec-netflix')).toMatchObject({
+      description: 'Netflix Premium',
+      amount: 17.99,
     })
   })
 })

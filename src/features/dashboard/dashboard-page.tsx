@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import {
@@ -14,9 +15,14 @@ import { StatusPill } from '../../components/ui/status'
 import { Page } from '../../components/ui/page'
 import { CashFlowChart, ExpenseBreakdownRailChart } from '../../components/ui/tanstack-charts'
 import { t } from '../../lib/i18n'
+import type { Period } from '../../types/domain'
 
 export function DashboardPage() {
-  const summary = useQuery({ queryKey: ['dashboard', '1M'], queryFn: getDashboardSummary })
+  const [period, setPeriod] = useState<Period>('1M')
+  const summary = useQuery({
+    queryKey: ['dashboard', period],
+    queryFn: () => getDashboardSummary(period),
+  })
   const accounts = useQuery({ queryKey: ['accounts'], queryFn: () => getAccounts() })
   const transactions = useQuery({
     queryKey: ['transactions', { limit: 5 }],
@@ -44,9 +50,14 @@ export function DashboardPage() {
       description={t('dashboard.description')}
       action={
         <div className="period-switcher">
-          {['7D', '1M', '3M', '6M', '1Y'].map((period) => (
-            <button key={period} className={period === '1M' ? 'is-selected' : ''}>
-              {period}
+          {(['7D', '1M', '3M', '6M', '1Y'] as Period[]).map((option) => (
+            <button
+              key={option}
+              className={option === period ? 'is-selected' : ''}
+              aria-pressed={option === period}
+              onClick={() => setPeriod(option)}
+            >
+              {option}
             </button>
           ))}
         </div>

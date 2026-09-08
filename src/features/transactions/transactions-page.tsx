@@ -24,6 +24,7 @@ import { formatCurrency, formatDate } from '../../lib/format'
 import { Page } from '../../components/ui/page'
 import { Button } from '../../components/ui/button'
 import { Icon } from '../../components/ui/icon'
+import { AppModal } from '../../components/ui/modal'
 import { StatusPill } from '../../components/ui/status'
 import { useUIStore } from '../../stores/ui-store'
 import { t } from '../../lib/i18n'
@@ -32,14 +33,40 @@ export function TransactionsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [sorting, setSorting] = useState<SortingState>([{ id: 'transactionDate', desc: true }])
   const [selected, setSelected] = useState<Record<string, boolean>>({})
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [filterDraft, setFilterDraft] = useState({
+    dateFrom: '',
+    dateTo: '',
+    accountId: '',
+    categoryId: '',
+    labelId: '',
+    amountMin: '',
+    amountMax: '',
+    recurring: '',
+    hasReceipt: '',
+  })
   const openQuickAdd = useUIStore((state) => state.openQuickAdd)
   const search = searchParams.get('search') ?? ''
   const type = (searchParams.get('type') as TransactionType | null) ?? 'all'
   const recurring = searchParams.get('recurring')
   const hasReceipt = searchParams.get('hasReceipt')
+  const accountId = searchParams.get('account') ?? ''
+  const categoryId = searchParams.get('category') ?? ''
+  const labelId = searchParams.get('label') ?? ''
+  const dateFrom = searchParams.get('dateFrom') ?? ''
+  const dateTo = searchParams.get('dateTo') ?? ''
+  const amountMin = searchParams.get('amountMin') ?? ''
+  const amountMax = searchParams.get('amountMax') ?? ''
   const filters: TransactionFilters = {
     search: search || undefined,
     types: type === 'all' ? undefined : [type],
+    accounts: accountId ? [accountId] : undefined,
+    categories: categoryId ? [categoryId] : undefined,
+    labels: labelId ? [labelId] : undefined,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+    amountMin: amountMin ? Number(amountMin) : undefined,
+    amountMax: amountMax ? Number(amountMax) : undefined,
     recurring: recurring === null ? undefined : recurring === 'true',
     hasReceipt: hasReceipt === null ? undefined : hasReceipt === 'true',
   }
@@ -230,6 +257,62 @@ export function TransactionsPage() {
     setSearchParams(next)
   }
 
+  function openFilters() {
+    setFilterDraft({
+      dateFrom,
+      dateTo,
+      accountId,
+      categoryId,
+      labelId,
+      amountMin,
+      amountMax,
+      recurring: recurring ?? '',
+      hasReceipt: hasReceipt ?? '',
+    })
+    setFiltersOpen(true)
+  }
+
+  function applyFilters() {
+    const next = new URLSearchParams(searchParams)
+    ;[
+      'dateFrom',
+      'dateTo',
+      'account',
+      'category',
+      'label',
+      'amountMin',
+      'amountMax',
+      'recurring',
+      'hasReceipt',
+    ].forEach((param) => next.delete(param))
+    const values: Record<string, string> = {
+      dateFrom: filterDraft.dateFrom,
+      dateTo: filterDraft.dateTo,
+      account: filterDraft.accountId,
+      category: filterDraft.categoryId,
+      label: filterDraft.labelId,
+      amountMin: filterDraft.amountMin,
+      amountMax: filterDraft.amountMax,
+      recurring: filterDraft.recurring,
+      hasReceipt: filterDraft.hasReceipt,
+    }
+    Object.entries(values).forEach(([param, value]) => {
+      if (value) next.set(param, value)
+    })
+    setSearchParams(next)
+    setFiltersOpen(false)
+  }
+
+  function setThisMonth() {
+    const today = new Date()
+    const start = new Date(today.getFullYear(), today.getMonth(), 1)
+    const next = new URLSearchParams()
+    next.set('type', 'expense')
+    next.set('dateFrom', start.toISOString().slice(0, 10))
+    next.set('dateTo', today.toISOString().slice(0, 10))
+    setSearchParams(next)
+  }
+
   return (
     <Page
       eyebrow={t('page.ledger')}
@@ -271,14 +354,12 @@ export function TransactionsPage() {
             placeholder={t('transactions.searchPlaceholder')}
           />
         </label>
-        <Button variant="secondary">
+        <Button variant="secondary" onClick={openFilters} aria-expanded={filtersOpen}>
           <Icon name="filter" size={16} /> {t('transactions.moreFilters')}
         </Button>
       </div>
       <div className="shortcuts">
-        <button onClick={() => setSearchParams({ type: 'expense' })}>
-          {t('transactions.thisMonth')}
-        </button>
+        <button onClick={setThisMonth}>{t('transactions.thisMonth')}</button>
         <button onClick={() => setSearchParams({ recurring: 'true' })}>
           {t('transactions.recurring')}
         </button>
@@ -300,6 +381,150 @@ export function TransactionsPage() {
           {t('transactions.saveView')}
         </button>
       </div>
+      <AppModal
+        isOpen={filtersOpen}
+        onRequestClose={() => setFiltersOpen(false)}
+        eyebrow={t('transactions.filterEyebrow')}
+        title={t('transactions.filterTitle')}
+        width={640}
+      >
+        <div className="form__stack">
+          <div className="form__grid--two">
+            <label className="form__field">
+              <span>{t('transactions.dateFrom')}</span>
+              <input
+                type="date"
+                value={filterDraft.dateFrom}
+                onChange={(event) =>
+                  setFilterDraft((draft) => ({ ...draft, dateFrom: event.target.value }))
+                }
+              />
+            </label>
+            <label className="form__field">
+              <span>{t('transactions.dateTo')}</span>
+              <input
+                type="date"
+                value={filterDraft.dateTo}
+                onChange={(event) =>
+                  setFilterDraft((draft) => ({ ...draft, dateTo: event.target.value }))
+                }
+              />
+            </label>
+          </div>
+          <div className="form__grid--two">
+            <label className="form__field">
+              <span>{t('common.account')}</span>
+              <select
+                value={filterDraft.accountId}
+                onChange={(event) =>
+                  setFilterDraft((draft) => ({ ...draft, accountId: event.target.value }))
+                }
+              >
+                <option value="">{t('common.all')}</option>
+                {(accounts.data ?? []).map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="form__field">
+              <span>{t('common.category')}</span>
+              <select
+                value={filterDraft.categoryId}
+                onChange={(event) =>
+                  setFilterDraft((draft) => ({ ...draft, categoryId: event.target.value }))
+                }
+              >
+                <option value="">{t('common.all')}</option>
+                {(categories.data ?? []).map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="form__grid--two">
+            <label className="form__field">
+              <span>{t('nav.labels')}</span>
+              <select
+                value={filterDraft.labelId}
+                onChange={(event) =>
+                  setFilterDraft((draft) => ({ ...draft, labelId: event.target.value }))
+                }
+              >
+                <option value="">{t('common.all')}</option>
+                {(labels.data ?? []).map((label) => (
+                  <option key={label.id} value={label.id}>
+                    {label.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="form__field">
+              <span>{t('transactions.receiptStatus')}</span>
+              <select
+                value={filterDraft.hasReceipt}
+                onChange={(event) =>
+                  setFilterDraft((draft) => ({ ...draft, hasReceipt: event.target.value }))
+                }
+              >
+                <option value="">{t('common.all')}</option>
+                <option value="true">{t('transactions.withReceipt')}</option>
+                <option value="false">{t('transactions.withoutReceipt')}</option>
+              </select>
+            </label>
+          </div>
+          <div className="form__grid--two">
+            <label className="form__field">
+              <span>{t('transactions.amountMin')}</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={filterDraft.amountMin}
+                onChange={(event) =>
+                  setFilterDraft((draft) => ({ ...draft, amountMin: event.target.value }))
+                }
+              />
+            </label>
+            <label className="form__field">
+              <span>{t('transactions.amountMax')}</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={filterDraft.amountMax}
+                onChange={(event) =>
+                  setFilterDraft((draft) => ({ ...draft, amountMax: event.target.value }))
+                }
+              />
+            </label>
+          </div>
+          <label className="form__field">
+            <span>{t('transactions.recurringStatus')}</span>
+            <select
+              value={filterDraft.recurring}
+              onChange={(event) =>
+                setFilterDraft((draft) => ({ ...draft, recurring: event.target.value }))
+              }
+            >
+              <option value="">{t('common.all')}</option>
+              <option value="true">{t('transactions.recurring')}</option>
+              <option value="false">{t('transactions.notRecurring')}</option>
+            </select>
+          </label>
+          <div className="modal__actions">
+            <Button variant="ghost" onClick={() => setFiltersOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button variant="primary" onClick={applyFilters}>
+              <Icon name="filter" size={15} /> {t('transactions.applyFilters')}
+            </Button>
+          </div>
+        </div>
+      </AppModal>
       {selectedIds.length > 0 && (
         <div className="bulk-actions">
           <span>{t('transactions.selected', { count: selectedIds.length })}</span>

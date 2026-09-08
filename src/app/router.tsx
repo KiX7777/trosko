@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from '../components/app-shell'
+import { Icon } from '../components/ui/icon'
 import { AuthGate } from '../features/auth/auth-gate'
 
 const AnalyticsPage = lazy(() =>
@@ -51,7 +52,85 @@ const AuthPage = lazy(() =>
 )
 
 function RouteLoading() {
-  return <div role="status">Loading…</div>
+  return (
+    <main className="route-loading" role="status" aria-label="Učitavanje aplikacije">
+      <div className="route-loading__ambient" aria-hidden="true" />
+      <div className="route-loading__shell" aria-hidden="true">
+        <aside className="route-loading__sidebar">
+          <div className="route-loading__brand">
+            <span className="route-loading__mark">
+              <Icon name="trend" size={17} />
+            </span>
+            <strong>Troško</strong>
+          </div>
+          <div className="route-loading__nav">
+            <span className="route-loading__nav-item route-loading__nav-item--active">
+              <i />
+              <i />
+            </span>
+            <span className="route-loading__nav-item">
+              <i />
+              <i />
+            </span>
+            <span className="route-loading__nav-item">
+              <i />
+              <i />
+            </span>
+            <span className="route-loading__nav-item">
+              <i />
+              <i />
+            </span>
+          </div>
+          <span className="route-loading__sidebar-footer" />
+        </aside>
+
+        <section className="route-loading__workspace">
+          <header className="route-loading__header">
+            <div>
+              <span className="route-loading__line route-loading__line--kicker" />
+              <span className="route-loading__line route-loading__line--title" />
+            </div>
+            <div className="route-loading__header-actions">
+              <span className="route-loading__circle route-loading__circle--small" />
+              <span className="route-loading__circle" />
+            </div>
+          </header>
+          <div className="route-loading__content">
+            <div className="route-loading__intro">
+              <div>
+                <span className="route-loading__line route-loading__line--eyebrow" />
+                <span className="route-loading__line route-loading__line--heading" />
+                <span className="route-loading__line route-loading__line--description" />
+              </div>
+              <span className="route-loading__button" />
+            </div>
+            <div className="route-loading__cards">
+              <span className="route-loading__card route-loading__card--wide" />
+              <span className="route-loading__card" />
+              <span className="route-loading__card" />
+            </div>
+            <div className="route-loading__lower-grid">
+              <span className="route-loading__chart">
+                <i />
+                <i />
+                <i />
+                <i />
+                <i />
+                <i />
+                <i />
+              </span>
+              <span className="route-loading__side-card" />
+            </div>
+          </div>
+        </section>
+      </div>
+      <div className="route-loading__message">
+        <span className="route-loading__spinner" />
+        <span>Pripremamo tvoj pregled</span>
+      </div>
+      <span className="route-loading__sr-only">Učitavam…</span>
+    </main>
+  )
 }
 
 export function AppRouter() {
