@@ -9,18 +9,34 @@ import { useUIStore } from '../../stores/ui-store'
 import { AppModal } from '../../components/ui/modal'
 import { Button } from '../../components/ui/button'
 import { CurrencyInput } from '../../components/ui/currency-input'
+import { FieldError, fieldClassName } from '../../components/ui/form-field'
+import { AppSelect } from '../../components/ui/select'
 import { t } from '../../lib/i18n'
 
-const schema = z.object({
-  type: z.enum(['expense', 'income', 'transfer']),
-  description: z.string().min(2, t('quickAdd.invalidDescription')),
-  amount: z.coerce.number().positive(t('quickAdd.invalidAmount')),
-  accountId: z.string().min(1, t('quickAdd.invalidAccount')),
-  categoryId: z.string().optional(),
-  transferAccountId: z.string().optional(),
-  transactionDate: z.string().min(1),
-  merchant: z.string().optional(),
-})
+const schema = z
+  .object({
+    type: z.enum(['expense', 'income', 'transfer']),
+    description: z
+      .string()
+      .trim()
+      .min(1, t('validation.required'))
+      .min(2, t('quickAdd.invalidDescription')),
+    amount: z.coerce.number().positive(t('quickAdd.invalidAmount')),
+    accountId: z.string().min(1, t('quickAdd.invalidAccount')),
+    categoryId: z.string().optional(),
+    transferAccountId: z.string().optional(),
+    transactionDate: z.string().min(1, t('validation.invalidDate')),
+    merchant: z.string().optional(),
+  })
+  .superRefine((values, context) => {
+    if (values.type === 'transfer' && !values.transferAccountId) {
+      context.addIssue({
+        code: 'custom',
+        path: ['transferAccountId'],
+        message: t('quickAdd.invalidDestination'),
+      })
+    }
+  })
 
 type FormInput = z.input<typeof schema>
 type FormOutput = z.output<typeof schema>
@@ -32,6 +48,8 @@ export function QuickAddModal() {
   const categoriesQuery = useQuery({ queryKey: ['categories'], queryFn: getCategories })
   const form = useForm<FormInput, unknown, FormOutput>({
     resolver: zodResolver(schema),
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
     defaultValues: {
       type:
         quickAddType === 'income' ? 'income' : quickAddType === 'transfer' ? 'transfer' : 'expense',
@@ -62,7 +80,7 @@ export function QuickAddModal() {
       title={t('quickAdd.title')}
     >
       <form
-        className="form-stack"
+        className="form__stack"
         onSubmit={form.handleSubmit((values) =>
           mutation.mutate({ ...values, currency: 'EUR', labelIds: [] }),
         )}
@@ -72,7 +90,7 @@ export function QuickAddModal() {
             <button
               type="button"
               key={value}
-              className={type === value ? 'selected' : ''}
+              className={type === value ? 'is-selected' : ''}
               onClick={() => form.setValue('type', value)}
             >
               {value === 'expense'
@@ -83,18 +101,22 @@ export function QuickAddModal() {
             </button>
           ))}
         </div>
-        <label className="form-field">
+        <label className="form__field">
           <span>{t('common.description')}</span>
           <input
             placeholder={t('quickAdd.descriptionPlaceholder')}
+            className={fieldClassName(Boolean(form.formState.errors.description))}
+            aria-invalid={Boolean(form.formState.errors.description)}
+            aria-describedby="quick-add-description-error"
             {...form.register('description')}
           />
-          {form.formState.errors.description && (
-            <small>{form.formState.errors.description.message}</small>
-          )}
+          <FieldError
+            id="quick-add-description-error"
+            message={form.formState.errors.description?.message}
+          />
         </label>
-        <div className="form-grid-2">
-          <label className="form-field">
+        <div className="form__grid--two">
+          <label className="form__field">
             <span>{t('common.amount')}</span>
             <Controller
               control={form.control}
@@ -106,64 +128,116 @@ export function QuickAddModal() {
                   onBlur={field.onBlur}
                   getInputRef={field.ref}
                   onValueChange={field.onChange}
+                  className={fieldClassName(Boolean(form.formState.errors.amount))}
+                  aria-invalid={Boolean(form.formState.errors.amount)}
+                  aria-describedby="quick-add-amount-error"
                   currency="EUR"
                   placeholder={t('quickAdd.amountPlaceholder')}
                 />
               )}
             />
-            {form.formState.errors.amount && <small>{form.formState.errors.amount.message}</small>}
+            <FieldError
+              id="quick-add-amount-error"
+              message={form.formState.errors.amount?.message}
+            />
           </label>
-          <label className="form-field">
+          <label className="form__field">
             <span>{t('common.date')}</span>
-            <input type="date" {...form.register('transactionDate')} />
+            <input
+              type="date"
+              className={fieldClassName(Boolean(form.formState.errors.transactionDate))}
+              aria-invalid={Boolean(form.formState.errors.transactionDate)}
+              aria-describedby="quick-add-date-error"
+              {...form.register('transactionDate')}
+            />
+            <FieldError
+              id="quick-add-date-error"
+              message={form.formState.errors.transactionDate?.message}
+            />
           </label>
         </div>
-        <label className="form-field">
+        <label className="form__field">
           <span>{t('common.account')}</span>
-          <select {...form.register('accountId')}>
-            <option value="">{t('common.noAccount')}</option>
-            {accountsQuery.data?.map((account) => (
-              <option key={account.id} value={account.id}>
-                {account.name}
-              </option>
-            ))}
-          </select>
-          {form.formState.errors.accountId && (
-            <small>{form.formState.errors.accountId.message}</small>
-          )}
+          <Controller
+            control={form.control}
+            name="accountId"
+            render={({ field }) => (
+              <AppSelect
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                placeholder={t('common.noAccount')}
+                options={(accountsQuery.data ?? []).map((account) => ({
+                  value: account.id,
+                  label: account.name,
+                }))}
+                invalid={Boolean(form.formState.errors.accountId)}
+                describedBy="quick-add-account-error"
+                isSearchable
+                isClearable
+              />
+            )}
+          />
+          <FieldError
+            id="quick-add-account-error"
+            message={form.formState.errors.accountId?.message}
+          />
         </label>
         {type === 'transfer' ? (
-          <label className="form-field">
+          <label className="form__field">
             <span>{t('quickAdd.destinationAccount')}</span>
-            <select {...form.register('transferAccountId')}>
-              <option value="">{t('common.noAccount')}</option>
-              {accountsQuery.data?.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name}
-                </option>
-              ))}
-            </select>
+            <Controller
+              control={form.control}
+              name="transferAccountId"
+              render={({ field }) => (
+                <AppSelect
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder={t('common.noAccount')}
+                  options={(accountsQuery.data ?? []).map((account) => ({
+                    value: account.id,
+                    label: account.name,
+                  }))}
+                  invalid={Boolean(form.formState.errors.transferAccountId)}
+                  describedBy="quick-add-destination-error"
+                  isSearchable
+                  isClearable
+                />
+              )}
+            />
+            <FieldError
+              id="quick-add-destination-error"
+              message={form.formState.errors.transferAccountId?.message}
+            />
           </label>
         ) : (
-          <label className="form-field">
+          <label className="form__field">
             <span>{t('common.category')}</span>
-            <select {...form.register('categoryId')}>
-              <option value="">{t('common.noCategory')}</option>
-              {categoriesQuery.data
-                ?.filter((category) => category.type === type)
-                .map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-            </select>
+            <Controller
+              control={form.control}
+              name="categoryId"
+              render={({ field }) => (
+                <AppSelect
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder={t('common.noCategory')}
+                  options={(categoriesQuery.data ?? [])
+                    .filter((category) => category.type === type)
+                    .map((category) => ({ value: category.id, label: category.name }))}
+                  isSearchable
+                  isClearable
+                />
+              )}
+            />
           </label>
         )}
-        <label className="form-field">
+        <label className="form__field">
           <span>{t('quickAdd.source')}</span>
           <input placeholder={t('common.optional')} {...form.register('merchant')} />
         </label>
-        <div className="modal-actions">
+        <div className="modal__actions">
           <Button type="button" variant="ghost" onClick={closeQuickAdd}>
             {t('common.cancel')}
           </Button>

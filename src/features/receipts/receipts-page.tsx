@@ -44,14 +44,14 @@ export function ReceiptsPage() {
         </Button>
       }
     >
-      <section className="receipts-layout">
+      <section className="receipts__layout">
         <button
           type="button"
-          className={`receipt-dropzone ${dropzone.isDragActive ? 'active' : ''}`}
+          className={`receipts__dropzone ${dropzone.isDragActive ? 'is-active' : ''}`}
           {...dropzone.getRootProps()}
         >
           <input {...dropzone.getInputProps()} />
-          <span className="upload-orb">
+          <span className="receipts__upload-orb">
             <Icon name="upload" size={24} />
           </span>
           <strong>
@@ -59,32 +59,32 @@ export function ReceiptsPage() {
           </strong>
           <span>{t('receipts.chooseFile')}</span>
         </button>
-        <div className="surface-card receipt-review-card">
+        <div className="card receipts__review-card">
           <div className="section-heading">
             <div>
               <span className="eyebrow">{t('page.ocrQueue')}</span>
               <h2>{t('receipts.pendingReview')}</h2>
             </div>
-            <span className="count-badge">{items.length}</span>
+            <span className="badge--count">{items.length}</span>
           </div>
           {items.length === 0 ? (
-            <div className="table-empty">
+            <div className="table__empty">
               <Icon name="file-text" size={24} />
               <strong>{t('receipts.emptyTitle')}</strong>
               <span>{t('receipts.emptyDescription')}</span>
             </div>
           ) : (
-            <div className="receipt-list">
+            <div className="receipts__list">
               {items.map((item) => (
-                <div className="receipt-row" key={item.id}>
-                  <span className="receipt-file-icon">
+                <div className="receipts__row" key={item.id}>
+                  <span className="receipts__file-icon">
                     <Icon name="file-text" size={17} />
                   </span>
                   <span>
                     <strong>{item.name}</strong>
                     <small>{item.size}</small>
                   </span>
-                  <span className="receipt-status">{t('receipts.manualReview')}</span>
+                  <span className="receipts__status">{t('receipts.manualReview')}</span>
                   <Button
                     variant="ghost"
                     aria-label={t('common.close')}

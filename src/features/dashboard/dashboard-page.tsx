@@ -10,7 +10,7 @@ import {
 import { formatCurrency, formatRelativeDate } from '../../lib/format'
 import { Icon } from '../../components/ui/icon'
 import { MetricCard } from '../../components/ui/metric-card'
-import { StatusPill } from '../../components/ui/status-pill'
+import { StatusPill } from '../../components/ui/status'
 import { Page } from '../../components/ui/page'
 import { CashFlowChart, ExpenseBreakdownRailChart } from '../../components/ui/tanstack-charts'
 import { t } from '../../lib/i18n'
@@ -45,22 +45,22 @@ export function DashboardPage() {
       action={
         <div className="period-switcher">
           {['7D', '1M', '3M', '6M', '1Y'].map((period) => (
-            <button key={period} className={period === '1M' ? 'selected' : ''}>
+            <button key={period} className={period === '1M' ? 'is-selected' : ''}>
               {period}
             </button>
           ))}
         </div>
       }
     >
-      <section className="summary-grid">
-        <article className="balance-card">
-          <div className="balance-card-top">
+      <section className="summary">
+        <article className="balance">
+          <div className="balance__top">
             <span>{t('dashboard.availableBalance')}</span>
             <StatusPill tone="positive">{t('dashboard.monthlyChange')}</StatusPill>
           </div>
           <strong>{formatCurrency(data?.balance ?? 0)}</strong>
-          <span className="balance-caption">{t('dashboard.updatedNow')}</span>
-          <div className="balance-rail">
+          <span className="balance__caption">{t('dashboard.updatedNow')}</span>
+          <div className="balance__rail">
             <span style={{ width: '68%' }} />
           </div>
         </article>
@@ -87,23 +87,23 @@ export function DashboardPage() {
         />
       </section>
 
-      <section className="dashboard-grid">
-        <article className="surface-card cashflow-widget">
-          <div className="section-title-row">
+      <section className="dashboard__grid">
+        <article className="card widget--cashflow">
+          <div className="section__title-row">
             <div>
               <h3>{t('dashboard.cashFlow')}</h3>
               <p>{t('dashboard.cashFlowDescription')}</p>
             </div>
-            <Link className="text-link" to="/analytics">
+            <Link className="link" to="/analytics">
               {t('dashboard.details')} <Icon name="chevron-right" size={14} />
             </Link>
           </div>
-          <div className="chart-legend">
+          <div className="chart__legend">
             <span>
-              <i className="legend-dot income" /> {t('common.income')}
+              <i className="chart__legend-dot chart__legend-dot--income" /> {t('common.income')}
             </span>
             <span>
-              <i className="legend-dot expense" /> {t('common.expenses')}
+              <i className="chart__legend-dot chart__legend-dot--expense" /> {t('common.expenses')}
             </span>
           </div>
           <CashFlowChart
@@ -112,15 +112,15 @@ export function DashboardPage() {
             ariaLabel={t('dashboard.cashFlow')}
           />
         </article>
-        <article className="surface-card category-widget">
-          <div className="section-title-row">
+        <article className="card widget--category">
+          <div className="section__title-row">
             <div>
               <h3>{t('dashboard.expensesByCategory')}</h3>
               <p>
                 {t('common.total')} {formatCurrency(data?.expenses ?? 0)}
               </p>
             </div>
-            <Link className="text-link" to="/analytics">
+            <Link className="link" to="/analytics">
               {t('dashboard.analytics')} <Icon name="chevron-right" size={14} />
             </Link>
           </div>
@@ -128,30 +128,30 @@ export function DashboardPage() {
             data={data?.categoryBreakdown ?? []}
             ariaLabel={t('dashboard.expensesByCategory')}
           />
-          <div className="breakdown-list">
+          <div className="breakdown__list">
             {(data?.categoryBreakdown ?? []).slice(0, 4).map((item) => (
-              <div className="breakdown-line" key={item.categoryId}>
-                <span className="breakdown-dot" style={{ background: item.color }} />
+              <div className="breakdown__line" key={item.categoryId}>
+                <span className="breakdown__dot" style={{ background: item.color }} />
                 <span>{item.name}</span>
                 <strong>{formatCurrency(item.amount)}</strong>
               </div>
             ))}
           </div>
         </article>
-        <article className="surface-card accounts-widget">
-          <div className="section-title-row">
+        <article className="card widget--accounts">
+          <div className="section__title-row">
             <div>
               <h3>{t('dashboard.myAccounts')}</h3>
               <p>{t('dashboard.activeAccounts', { count: accounts.data?.length ?? 0 })}</p>
             </div>
-            <Link className="text-link" to="/accounts">
+            <Link className="link" to="/accounts">
               {t('dashboard.manage')} <Icon name="chevron-right" size={14} />
             </Link>
           </div>
-          <div className="account-list">
+          <div className="accounts__list">
             {(accounts.data ?? []).map((account) => (
-              <Link className="account-row" to="/accounts" key={account.id}>
-                <span className="account-row-icon" style={{ color: account.color }}>
+              <Link className="accounts__row" to="/accounts" key={account.id}>
+                <span className="accounts__row-icon" style={{ color: account.color }}>
                   <Icon
                     name={
                       account.type === 'credit_card'
@@ -176,23 +176,23 @@ export function DashboardPage() {
             ))}
           </div>
         </article>
-        <article className="surface-card upcoming-widget">
-          <div className="section-title-row">
+        <article className="card widget--upcoming">
+          <div className="section__title-row">
             <div>
               <h3>{t('dashboard.upcomingExpenses')}</h3>
               <p>{t('dashboard.upcomingDescription')}</p>
             </div>
-            <Link className="text-link" to="/recurring">
+            <Link className="link" to="/recurring">
               {t('dashboard.all')} <Icon name="chevron-right" size={14} />
             </Link>
           </div>
-          <div className="upcoming-list">
+          <div className="upcoming__list">
             {(recurring.data ?? [])
               .filter((item) => item.type === 'expense')
               .slice(0, 3)
               .map((item) => (
-                <div className="upcoming-row" key={item.id}>
-                  <span className="upcoming-icon">
+                <div className="upcoming__row" key={item.id}>
+                  <span className="upcoming__icon">
                     <Icon name="calendar-days" size={17} />
                   </span>
                   <span>
@@ -201,7 +201,7 @@ export function DashboardPage() {
                       {frequencyLabel(item.frequency)} • {item.nextRunAt}
                     </small>
                   </span>
-                  <span className="upcoming-amount">
+                  <span className="upcoming__amount">
                     <b>{formatCurrency(item.amount)}</b>
                     <small>{t('common.soon')}</small>
                   </span>
@@ -211,24 +211,24 @@ export function DashboardPage() {
         </article>
       </section>
 
-      <section className="surface-card recent-widget">
-        <div className="section-title-row">
+      <section className="card widget--recent">
+        <div className="section__title-row">
           <div>
             <h3>{t('dashboard.recentTransactions')}</h3>
             <p>{t('dashboard.recentDescription')}</p>
           </div>
-          <Link className="text-link" to="/transactions">
+          <Link className="link" to="/transactions">
             {t('dashboard.viewAll')} <Icon name="chevron-right" size={14} />
           </Link>
         </div>
-        <div className="recent-list">
+        <div className="recent__list">
           {(transactions.data ?? []).slice(0, 5).map((transaction) => (
             <Link
-              className="recent-row"
+              className="recent__row"
               to={`/transactions?search=${encodeURIComponent(transaction.description)}`}
               key={transaction.id}
             >
-              <span className={`transaction-glyph ${transaction.type}`}>
+              <span className={`transaction-glyph transaction-glyph--${transaction.type}`}>
                 <Icon
                   name={
                     transaction.type === 'income'
@@ -240,7 +240,7 @@ export function DashboardPage() {
                   size={17}
                 />
               </span>
-              <span className="recent-copy">
+              <span className="recent__copy">
                 <strong>{transaction.description}</strong>
                 <small>
                   {transaction.merchant ?? t('dashboard.internalRecord')} •{' '}
@@ -250,9 +250,9 @@ export function DashboardPage() {
               <b
                 className={
                   transaction.type === 'income'
-                    ? 'amount-positive'
+                    ? 'amount--positive'
                     : transaction.type === 'expense'
-                      ? 'amount-negative'
+                      ? 'amount--negative'
                       : ''
                 }
               >

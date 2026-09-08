@@ -9,9 +9,13 @@ import { Page } from '../../components/ui/page'
 import { Button } from '../../components/ui/button'
 import { Icon } from '../../components/ui/icon'
 import { AppModal } from '../../components/ui/modal'
+import { FieldError, fieldClassName } from '../../components/ui/form-field'
 import { t } from '../../lib/i18n'
 
-const schema = z.object({ name: z.string().min(2), color: z.string() })
+const schema = z.object({
+  name: z.string().trim().min(1, t('validation.required')).min(2, t('validation.minTwoChars')),
+  color: z.string().min(1, t('validation.required')),
+})
 
 export function LabelsPage() {
   const [open, setOpen] = useState(false)
@@ -20,6 +24,8 @@ export function LabelsPage() {
   const client = useQueryClient()
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
     defaultValues: { color: '#6bd8cb' },
   })
   const mutation = useMutation({
@@ -42,11 +48,11 @@ export function LabelsPage() {
         </Button>
       }
     >
-      <div className="label-grid">
+      <div className="labels__grid">
         {(labels.data ?? []).map((label) => (
-          <article className="surface-card label-card" key={label.id}>
-            <div className="label-card-top">
-              <span className="label-swatch" style={{ background: label.color }} />
+          <article className="card labels__card" key={label.id}>
+            <div className="labels__card-top">
+              <span className="labels__swatch" style={{ background: label.color }} />
               <Button variant="icon" aria-label={t('aria.optionsFor', { name: label.name })}>
                 <Icon name="more" size={17} />
               </Button>
@@ -57,7 +63,7 @@ export function LabelsPage() {
                 .length ?? 0}{' '}
               {t('common.transactions')}
             </p>
-            <div className="label-bar">
+            <div className="labels__bar">
               <span
                 style={{
                   background: label.color,
@@ -75,18 +81,32 @@ export function LabelsPage() {
         title={t('labels.new')}
       >
         <form
-          className="form-stack"
+          className="form__stack"
           onSubmit={form.handleSubmit((values) => mutation.mutate(values))}
         >
-          <label className="form-field">
+          <label className="form__field">
             <span>{t('common.name')}</span>
-            <input placeholder={t('labels.namePlaceholder')} {...form.register('name')} />
+            <input
+              placeholder={t('labels.namePlaceholder')}
+              className={fieldClassName(Boolean(form.formState.errors.name))}
+              aria-invalid={Boolean(form.formState.errors.name)}
+              aria-describedby="label-name-error"
+              {...form.register('name')}
+            />
+            <FieldError id="label-name-error" message={form.formState.errors.name?.message} />
           </label>
-          <label className="form-field">
+          <label className="form__field">
             <span>{t('common.color')}</span>
-            <input type="color" {...form.register('color')} />
+            <input
+              type="color"
+              className={fieldClassName(Boolean(form.formState.errors.color))}
+              aria-invalid={Boolean(form.formState.errors.color)}
+              aria-describedby="label-color-error"
+              {...form.register('color')}
+            />
+            <FieldError id="label-color-error" message={form.formState.errors.color?.message} />
           </label>
-          <div className="modal-actions">
+          <div className="modal__actions">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
               {t('common.cancel')}
             </Button>

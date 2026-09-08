@@ -24,7 +24,7 @@ import { formatCurrency, formatDate } from '../../lib/format'
 import { Page } from '../../components/ui/page'
 import { Button } from '../../components/ui/button'
 import { Icon } from '../../components/ui/icon'
-import { StatusPill } from '../../components/ui/status-pill'
+import { StatusPill } from '../../components/ui/status'
 import { useUIStore } from '../../stores/ui-store'
 import { t } from '../../lib/i18n'
 
@@ -108,14 +108,14 @@ export function TransactionsPage() {
         accessorKey: 'transactionDate',
         header: t('common.date'),
         cell: ({ getValue }) => (
-          <span className="table-muted">{formatDate(`${getValue<string>()}T12:00:00.000Z`)}</span>
+          <span className="table__muted">{formatDate(`${getValue<string>()}T12:00:00.000Z`)}</span>
         ),
       },
       {
         accessorKey: 'description',
         header: t('common.description'),
         cell: ({ row }) => (
-          <div className="table-description">
+          <div className="table__description">
             <span className={`transaction-glyph ${row.original.type}`}>
               <Icon
                 name={
@@ -150,7 +150,7 @@ export function TransactionsPage() {
         id: 'labels',
         header: t('nav.labels'),
         cell: ({ row }) => (
-          <div className="table-labels">
+          <div className="table__labels">
             {row.original.labelIds.length ? (
               row.original.labelIds.map((labelId) => (
                 <StatusPill key={labelId} tone="indigo">
@@ -158,7 +158,7 @@ export function TransactionsPage() {
                 </StatusPill>
               ))
             ) : (
-              <span className="table-muted">—</span>
+              <span className="table__muted">—</span>
             )}
           </div>
         ),
@@ -169,7 +169,7 @@ export function TransactionsPage() {
         header: t('common.amount'),
         cell: ({ row }) => (
           <strong
-            className={`table-amount ${row.original.type === 'income' ? 'amount-positive' : row.original.type === 'expense' ? 'amount-negative' : ''}`}
+            className={`table__amount ${row.original.type === 'income' ? 'amount--positive' : row.original.type === 'expense' ? 'amount--negative' : ''}`}
           >
             {row.original.type === 'income' ? '+' : row.original.type === 'expense' ? '-' : ''}
             {formatCurrency(row.original.amountBase, row.original.currency)}
@@ -212,8 +212,8 @@ export function TransactionsPage() {
         </Button>
       }
     >
-      <div className="filter-toolbar">
-        <div className="filter-tabs">
+      <div className="filters">
+        <div className="filters__tabs">
           {[
             ['all', t('common.all')],
             ['expense', t('common.expenses')],
@@ -222,14 +222,14 @@ export function TransactionsPage() {
           ].map(([value, label]) => (
             <button
               key={value}
-              className={type === value ? 'active' : ''}
+              className={type === value ? 'is-active' : ''}
               onClick={() => setType(value)}
             >
               {label}
             </button>
           ))}
         </div>
-        <label className="search-field">
+        <label className="search">
           <Icon name="search" size={16} />
           <input
             value={search}
@@ -246,7 +246,7 @@ export function TransactionsPage() {
           <Icon name="filter" size={16} /> {t('transactions.moreFilters')}
         </Button>
       </div>
-      <div className="shortcut-row">
+      <div className="shortcuts">
         <button onClick={() => setSearchParams({ type: 'expense' })}>
           {t('transactions.thisMonth')}
         </button>
@@ -272,7 +272,7 @@ export function TransactionsPage() {
         </button>
       </div>
       {selectedIds.length > 0 && (
-        <div className="bulk-bar">
+        <div className="bulk-actions">
           <span>{t('transactions.selected', { count: selectedIds.length })}</span>
           <Button
             variant="danger"
@@ -282,12 +282,12 @@ export function TransactionsPage() {
           </Button>
         </div>
       )}
-      <div className="surface-card table-card">
-        <div className="table-meta">
+      <div className="card card--table">
+        <div className="table__meta">
           <span>{t('transactions.results', { count: transactions.data?.length ?? 0 })}</span>
-          <span className="table-muted">{t('transactions.sortHint')}</span>
+          <span className="table__muted">{t('transactions.sortHint')}</span>
         </div>
-        <div className="table-scroll">
+        <div className="table__scroll">
           <table>
             <thead>
               {table.getHeaderGroups().map((headerGroup) => (
@@ -330,7 +330,7 @@ export function TransactionsPage() {
               ) : (
                 <tr>
                   <td colSpan={columns.length}>
-                    <div className="table-empty">
+                    <div className="table__empty">
                       <Icon name="receipt" size={24} />
                       <strong>{t('transactions.emptyTitle')}</strong>
                       <span>{t('transactions.emptyDescription')}</span>

@@ -33,24 +33,24 @@ export function AnalyticsPage() {
       title={t('analytics.title')}
       description={t('analytics.description')}
       action={
-        <button className="date-range-button">
+        <button className="button--date-range">
           <Icon name="calendar-days" size={16} /> {t('analytics.september')}{' '}
           <Icon name="chevron-down" size={15} />
         </button>
       }
     >
-      <div className="analytics-tabs">
+      <div className="analytics__tabs">
         {tabs.map((tab) => (
           <button
             key={tab}
-            className={activeTab === tab ? 'active' : ''}
+            className={activeTab === tab ? 'is-active' : ''}
             onClick={() => setActiveTab(tab)}
           >
             {t(tab)}
           </button>
         ))}
       </div>
-      <div className="analytics-metrics">
+      <div className="analytics__metrics">
         <MetricCard
           label={t('common.income')}
           value={data?.income ?? 0}
@@ -75,14 +75,14 @@ export function AnalyticsPage() {
           icon="activity"
         />
       </div>
-      <section className="analytics-grid">
-        <article className="surface-card analytics-chart-card">
-          <div className="section-title-row">
+      <section className="analytics__grid">
+        <article className="card analytics__chart-card">
+          <div className="section__title-row">
             <div>
               <h3>{t('analytics.incomeVsExpenses')}</h3>
               <p>{t('analytics.monthlyComparison')}</p>
             </div>
-            <span className="chart-total">
+            <span className="chart__total">
               {formatCurrency(data?.netCashFlow ?? 0)} {t('common.net')}
             </span>
           </div>
@@ -92,28 +92,28 @@ export function AnalyticsPage() {
             ariaLabel={t('analytics.incomeVsExpenses')}
           />
         </article>
-        <article className="surface-card analytics-chart-card">
-          <div className="section-title-row">
+        <article className="card analytics__chart-card">
+          <div className="section__title-row">
             <div>
               <h3>{t('analytics.expenseDistribution')}</h3>
               <p>{t('analytics.byCategories')}</p>
             </div>
-            <Link className="text-link" to="/categories">
+            <Link className="link" to="/categories">
               {t('analytics.editCategories')} <Icon name="chevron-right" size={14} />
             </Link>
           </div>
-          <div className="donut-layout">
-            <div className="donut-chart-frame">
+          <div className="donut__layout">
+            <div className="donut__frame">
               <ExpenseDistributionChart
                 data={data?.categoryBreakdown ?? []}
                 ariaLabel={t('analytics.expenseDistribution')}
               />
-              <div className="donut-center">
+              <div className="donut__center">
                 <strong>{formatCurrency(data?.expenses ?? 0, 'EUR', true)}</strong>
                 <small>{t('analytics.total')}</small>
               </div>
             </div>
-            <div className="donut-legend">
+            <div className="donut__legend">
               {(data?.categoryBreakdown ?? []).map((item) => (
                 <div key={item.categoryId}>
                   <span>
@@ -126,23 +126,23 @@ export function AnalyticsPage() {
             </div>
           </div>
         </article>
-        <article className="surface-card merchant-card">
-          <div className="section-title-row">
+        <article className="card merchant-card">
+          <div className="section__title-row">
             <div>
               <h3>{t('analytics.topMerchants')}</h3>
               <p>{t('analytics.topMerchantsDescription')}</p>
             </div>
             <Icon name="bar-chart" size={18} />
           </div>
-          <div className="merchant-list">
+          <div className="merchant__list">
             {(data?.topMerchants ?? []).map((merchant, index) => (
-              <div className="merchant-row" key={merchant.merchant}>
-                <span className="merchant-rank">0{index + 1}</span>
+              <div className="merchant__row" key={merchant.merchant}>
+                <span className="merchant__rank">0{index + 1}</span>
                 <span>
                   <strong>{merchant.merchant}</strong>
                   <small>{t('analytics.transactionCount', { count: merchant.count })}</small>
                 </span>
-                <div className="merchant-value">
+                <div className="merchant__value">
                   <strong>{formatCurrency(merchant.amount)}</strong>
                   <MerchantProgressChart
                     amount={merchant.amount}

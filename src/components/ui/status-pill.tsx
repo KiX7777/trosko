@@ -5,5 +5,5 @@ export function StatusPill({
   children: string
   tone?: 'neutral' | 'positive' | 'negative' | 'warning' | 'indigo'
 }) {
-  return <span className={`status-pill ${tone}`}>{children}</span>
+  return <span className={`status status--${tone}`}>{children}</span>
 }

@@ -9,7 +9,7 @@ export function Button({
   ...props
 }: PropsWithChildren<ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant }>) {
   return (
-    <button className={`ui-button ${variant} ${className}`} {...props}>
+    <button className={`button button--${variant} ${className}`} {...props}>
       {children}
     </button>
   )

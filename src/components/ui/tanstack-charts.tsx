@@ -78,7 +78,7 @@ export function CashFlowChart({
   )
 
   return (
-    <div className="tanstack-chart-container cashflow-chart">
+    <div className="chart__container chart--cashflow">
       <Chart
         definition={definition}
         height={height}
@@ -124,7 +124,7 @@ export function ExpenseBreakdownRailChart({
   )
 
   return (
-    <div className="tanstack-chart-container category-rail">
+    <div className="chart__container chart--category-rail">
       <Chart definition={definition} height={22} ariaLabel={ariaLabel} />
     </div>
   )
@@ -175,7 +175,7 @@ export function ExpenseDistributionChart({
   )
 
   return (
-    <div className="tanstack-chart-container donut-chart">
+    <div className="chart__container donut__chart">
       <Chart definition={definition} height={176} ariaLabel={ariaLabel} />
     </div>
   )
@@ -196,7 +196,7 @@ export function MerchantProgressChart({
       defineChart({
         marks: [
           barX(rows, {
-            id: 'merchant-progress',
+            id: 'merchant__progress',
             x: 'amount',
             y: 'merchant',
             fill: 'var(--shell-primary)',
@@ -212,7 +212,7 @@ export function MerchantProgressChart({
   )
 
   return (
-    <div className="tanstack-chart-container merchant-progress">
+    <div className="chart__container merchant__progress">
       <Chart definition={definition} height={6} ariaLabel={ariaLabel} />
     </div>
   )

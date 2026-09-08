@@ -27,7 +27,7 @@ export function AuthGate({ children }: PropsWithChildren) {
     }
   }, [])
 
-  if (!ready) return <div className="auth-loading">{t('auth.loading')}</div>
+  if (!ready) return <div className="auth__loading">{t('auth.loading')}</div>
   if (supabase && !session)
     return <Navigate to="/login" replace state={{ from: location.pathname }} />
   return <>{children}</>

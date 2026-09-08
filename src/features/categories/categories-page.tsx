@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'react-toastify'
 import { z } from 'zod'
 import { createCategory, getCategories } from '../../lib/repository'
@@ -9,23 +9,30 @@ import { Page } from '../../components/ui/page'
 import { Button } from '../../components/ui/button'
 import { Icon } from '../../components/ui/icon'
 import { AppModal } from '../../components/ui/modal'
-import { StatusPill } from '../../components/ui/status-pill'
+import { StatusPill } from '../../components/ui/status'
+import { FieldError, fieldClassName } from '../../components/ui/form-field'
+import { IconPicker } from '../../components/ui/icon-picker'
+import { AppSelect } from '../../components/ui/select'
 import { t } from '../../lib/i18n'
 
 const schema = z.object({
-  name: z.string().min(2),
+  name: z.string().trim().min(1, t('validation.required')).min(2, t('validation.minTwoChars')),
   type: z.enum(['expense', 'income']),
-  icon: z.string().min(1),
+  icon: z.string().min(1, t('validation.required')),
   color: z.string(),
-  parentId: z.string().optional(),
+  parentId: z.string().transform((value) => value || undefined),
 })
+type CategoryFormInput = z.input<typeof schema>
+type CategoryFormOutput = z.output<typeof schema>
 
 export function CategoriesPage() {
   const [open, setOpen] = useState(false)
   const categories = useQuery({ queryKey: ['categories'], queryFn: getCategories })
   const client = useQueryClient()
-  const form = useForm<z.infer<typeof schema>>({
+  const form = useForm<CategoryFormInput, unknown, CategoryFormOutput>({
     resolver: zodResolver(schema),
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
     defaultValues: { type: 'expense', icon: 'sparkles', color: '#6bd8cb' },
   })
   const mutation = useMutation({
@@ -49,12 +56,12 @@ export function CategoriesPage() {
         </Button>
       }
     >
-      <div className="category-management-grid">
+      <div className="category-management__grid">
         {roots.map((category) => (
-          <article className="surface-card category-management-card" key={category.id}>
-            <div className="category-management-header">
+          <article className="card category-management__card" key={category.id}>
+            <div className="category-management__header">
               <span
-                className="category-color-icon"
+                className="category-management__icon"
                 style={{ background: `${category.color}25`, color: category.color }}
               >
                 <Icon name={category.icon} size={19} />
@@ -67,7 +74,7 @@ export function CategoriesPage() {
             <StatusPill tone={category.type === 'income' ? 'positive' : 'neutral'}>
               {category.type === 'income' ? t('common.incomeType') : t('common.expenseType')}
             </StatusPill>
-            <div className="subcategory-list">
+            <div className="category-management__subcategories">
               {categories.data
                 ?.filter((child) => child.parentId === category.id)
                 .map((child) => (
@@ -77,7 +84,7 @@ export function CategoriesPage() {
                   </div>
                 ))}
               {!categories.data?.some((child) => child.parentId === category.id) && (
-                <span className="table-muted">{t('categories.noSubcategories')}</span>
+                <span className="table__muted">{t('categories.noSubcategories')}</span>
               )}
             </div>
           </article>
@@ -90,44 +97,78 @@ export function CategoriesPage() {
         title={t('categories.new')}
       >
         <form
-          className="form-stack"
+          className="form__stack"
           onSubmit={form.handleSubmit((values) => mutation.mutate(values))}
         >
-          <label className="form-field">
+          <label className="form__field">
             <span>{t('common.name')}</span>
-            <input placeholder={t('categories.namePlaceholder')} {...form.register('name')} />
+            <input
+              placeholder={t('categories.namePlaceholder')}
+              className={fieldClassName(Boolean(form.formState.errors.name))}
+              aria-invalid={Boolean(form.formState.errors.name)}
+              aria-describedby="category-name-error"
+              {...form.register('name')}
+            />
+            <FieldError id="category-name-error" message={form.formState.errors.name?.message} />
           </label>
-          <div className="form-grid-2">
-            <label className="form-field">
+          <div className="form__grid--two">
+            <label className="form__field">
               <span>{t('common.type')}</span>
-              <select {...form.register('type')}>
-                <option value="expense">{t('common.expenseType')}</option>
-                <option value="income">{t('common.incomeType')}</option>
-              </select>
+              <Controller
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <AppSelect
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    options={[
+                      { value: 'expense', label: t('common.expenseType') },
+                      { value: 'income', label: t('common.incomeType') },
+                    ]}
+                    invalid={Boolean(form.formState.errors.type)}
+                    describedBy="category-type-error"
+                  />
+                )}
+              />
+              <FieldError id="category-type-error" message={form.formState.errors.type?.message} />
             </label>
-            <label className="form-field">
+            <label className="form__field">
               <span>{t('common.icon')}</span>
-              <select {...form.register('icon')}>
-                <option value="sparkles">{t('common.sparkles')}</option>
-                <option value="shopping-cart">{t('common.shoppingCart')}</option>
-                <option value="house">{t('common.house')}</option>
-                <option value="fuel">{t('common.fuel')}</option>
-                <option value="briefcase-business">{t('common.briefcase')}</option>
-              </select>
+              <Controller
+                control={form.control}
+                name="icon"
+                render={({ field }) => (
+                  <IconPicker
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    invalid={Boolean(form.formState.errors.icon)}
+                    describedBy="category-icon-error"
+                  />
+                )}
+              />
+              <FieldError id="category-icon-error" message={form.formState.errors.icon?.message} />
             </label>
           </div>
-          <label className="form-field">
+          <label className="form__field">
             <span>{t('categories.subcategoryOf')}</span>
-            <select {...form.register('parentId')}>
-              <option value="">{t('common.mainCategory')}</option>
-              {roots.map((root) => (
-                <option key={root.id} value={root.id}>
-                  {root.name}
-                </option>
-              ))}
-            </select>
+            <Controller
+              control={form.control}
+              name="parentId"
+              render={({ field }) => (
+                <AppSelect
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder={t('common.mainCategory')}
+                  options={roots.map((root) => ({ value: root.id, label: root.name }))}
+                  isClearable
+                />
+              )}
+            />
           </label>
-          <div className="modal-actions">
+          <div className="modal__actions">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
               {t('common.cancel')}
             </Button>

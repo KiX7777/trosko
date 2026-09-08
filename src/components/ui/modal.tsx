@@ -26,11 +26,11 @@ export function AppModal({
       onRequestClose={onRequestClose}
       shouldCloseOnEsc
       shouldCloseOnOverlayClick
-      className="modal-card"
-      overlayClassName="modal-overlay"
+      className="modal__card"
+      overlayClassName="modal__overlay"
       style={{ content: { maxWidth: width } }}
     >
-      <div className="modal-header">
+      <div className="modal__header">
         <div>
           {eyebrow && <span className="eyebrow">{eyebrow}</span>}
           <h2>{title}</h2>

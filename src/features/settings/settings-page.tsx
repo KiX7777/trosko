@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Papa from 'papaparse'
 import { toast } from 'react-toastify'
@@ -8,8 +9,12 @@ import { Button } from '../../components/ui/button'
 import { Icon } from '../../components/ui/icon'
 import { supabaseEnabled } from '../../lib/supabase'
 import { t } from '../../lib/i18n'
+import { FieldError, fieldClassName } from '../../components/ui/form-field'
+import { AppSelect } from '../../components/ui/select'
+import { DEFAULT_CURRENCY, SUPPORTED_CURRENCIES } from '../../lib/constants'
 
 export function SettingsPage() {
+  const [displayNameError, setDisplayNameError] = useState<string>()
   const profile = useQuery({ queryKey: ['profile'], queryFn: getProfile })
   const transactions = useQuery({
     queryKey: ['transactions'],
@@ -31,16 +36,16 @@ export function SettingsPage() {
       title={t('settings.title')}
       description={t('settings.description')}
       action={
-        <span className="settings-state">
-          <span className="online-dot" />{' '}
+        <span className="settings__state">
+          <span className="settings__online-dot" />{' '}
           {supabaseEnabled ? t('auth.active') : t('settings.demoActive')}
         </span>
       }
     >
-      <section className="settings-grid">
-        <article className="surface-card settings-card">
-          <div className="settings-card-heading">
-            <span className="settings-icon">
+      <section className="settings__grid">
+        <article className="card settings__card">
+          <div className="settings__card-heading">
+            <span className="settings__icon">
               <Icon name="user" size={18} />
             </span>
             <div>
@@ -48,33 +53,45 @@ export function SettingsPage() {
               <p>{t('settings.profileDescription')}</p>
             </div>
           </div>
-          <label className="form-field">
+          <label className="form__field">
             <span>{t('settings.displayName')}</span>
             <input
               defaultValue={displayName}
-              onBlur={(event) => mutation.mutate({ displayName: event.target.value })}
+              className={fieldClassName(Boolean(displayNameError))}
+              aria-invalid={Boolean(displayNameError)}
+              aria-describedby="settings-display-name-error"
+              onChange={() => setDisplayNameError(undefined)}
+              onBlur={(event) => {
+                const nextDisplayName = event.target.value.trim()
+                if (!nextDisplayName) {
+                  setDisplayNameError(t('validation.required'))
+                  return
+                }
+                setDisplayNameError(undefined)
+                mutation.mutate({ displayName: nextDisplayName })
+              }}
             />
+            <FieldError id="settings-display-name-error" message={displayNameError} />
           </label>
-          <label className="form-field">
+          <label className="form__field">
             <span>{t('auth.email')}</span>
             <input value={profile.data?.email ?? ''} readOnly />
           </label>
-          <label className="form-field">
+          <label className="form__field">
             <span>{t('settings.primaryCurrency')}</span>
-            <select
-              defaultValue={profile.data?.primaryCurrency ?? 'EUR'}
-              onChange={(event) => mutation.mutate({ primaryCurrency: event.target.value })}
-            >
-              <option>EUR</option>
-              <option>USD</option>
-              <option>GBP</option>
-              <option>CHF</option>
-            </select>
+            <AppSelect
+              value={profile.data?.primaryCurrency ?? DEFAULT_CURRENCY}
+              onChange={(value) => mutation.mutate({ primaryCurrency: value })}
+              options={SUPPORTED_CURRENCIES.map((value) => ({
+                value,
+                label: value,
+              }))}
+            />
           </label>
         </article>
-        <article className="surface-card settings-card">
-          <div className="settings-card-heading">
-            <span className="settings-icon">
+        <article className="card settings__card">
+          <div className="settings__card-heading">
+            <span className="settings__icon">
               <Icon name="sparkles" size={18} />
             </span>
             <div>
@@ -82,14 +99,14 @@ export function SettingsPage() {
               <p>{t('settings.themeDescription')}</p>
             </div>
           </div>
-          <div className="theme-options">
+          <div className="theme__options">
             {(['system', 'light', 'dark'] as const).map((value) => (
               <button
                 key={value}
-                className={theme === value ? 'selected' : ''}
+                className={theme === value ? 'is-selected' : ''}
                 onClick={() => setTheme(value)}
               >
-                <span className={`theme-preview ${value}`} />
+                <span className={`theme__preview theme__preview--${value}`} />
                 <strong>
                   {value === 'system'
                     ? t('settings.system')
@@ -102,9 +119,9 @@ export function SettingsPage() {
             ))}
           </div>
         </article>
-        <article className="surface-card settings-card">
-          <div className="settings-card-heading">
-            <span className="settings-icon">
+        <article className="card settings__card">
+          <div className="settings__card-heading">
+            <span className="settings__icon">
               <Icon name="download" size={18} />
             </span>
             <div>
@@ -142,9 +159,9 @@ export function SettingsPage() {
             {t('settings.pdfReport')} <Icon name="file-text" size={16} />
           </Button>
         </article>
-        <article className="surface-card settings-card">
-          <div className="settings-card-heading">
-            <span className="settings-icon">
+        <article className="card settings__card">
+          <div className="settings__card-heading">
+            <span className="settings__icon">
               <Icon name="archive" size={18} />
             </span>
             <div>

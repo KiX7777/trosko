@@ -10,20 +10,26 @@ import { Page } from '../../components/ui/page'
 import { Button } from '../../components/ui/button'
 import { Icon } from '../../components/ui/icon'
 import { AppModal } from '../../components/ui/modal'
-import { StatusPill } from '../../components/ui/status-pill'
+import { StatusPill } from '../../components/ui/status'
 import { CurrencyInput } from '../../components/ui/currency-input'
+import { FieldError, fieldClassName } from '../../components/ui/form-field'
+import { AppSelect } from '../../components/ui/select'
 import { t } from '../../lib/i18n'
 
 const schema = z.object({
-  description: z.string().min(2),
+  description: z
+    .string()
+    .trim()
+    .min(1, t('validation.required'))
+    .min(2, t('validation.minTwoChars')),
   type: z.enum(['expense', 'income']),
-  amount: z.coerce.number().positive(),
-  accountId: z.string().min(1),
+  amount: z.coerce.number().positive(t('validation.positiveAmount')),
+  accountId: z.string().min(1, t('validation.required')),
   categoryId: z.string().optional(),
   frequency: z.enum(['weekly', 'monthly', 'yearly', 'custom']),
-  interval: z.coerce.number().positive(),
-  startDate: z.string(),
-  nextRunAt: z.string(),
+  interval: z.coerce.number().positive(t('validation.positiveAmount')),
+  startDate: z.string().min(1, t('validation.invalidDate')),
+  nextRunAt: z.string().min(1, t('validation.invalidDate')),
 })
 type RecurringFormInput = z.input<typeof schema>
 type RecurringFormOutput = z.output<typeof schema>
@@ -36,6 +42,8 @@ export function RecurringPage() {
   const client = useQueryClient()
   const form = useForm<RecurringFormInput, unknown, RecurringFormOutput>({
     resolver: zodResolver(schema),
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
     defaultValues: {
       type: 'expense',
       frequency: 'monthly',
@@ -100,14 +108,14 @@ export function RecurringPage() {
           <small>{t('recurring.chargeDate')}</small>
         </div>
       </div>
-      <div className="surface-card recurring-table-card">
-        <div className="table-meta">
+      <div className="card card--recurring-table">
+        <div className="table__meta">
           <span>
             {recurring.data?.length ?? 0} {t('recurring.templates')}
           </span>
-          <span className="table-muted">{t('recurring.recurringNote')}</span>
+          <span className="table__muted">{t('recurring.recurringNote')}</span>
         </div>
-        <div className="table-scroll">
+        <div className="table__scroll">
           <table>
             <thead>
               <tr>
@@ -124,8 +132,8 @@ export function RecurringPage() {
               {(recurring.data ?? []).map((item) => (
                 <tr key={item.id}>
                   <td>
-                    <div className="table-description">
-                      <span className="recurring-icon">
+                    <div className="table__description">
+                      <span className="recurring__icon">
                         <Icon name="calendar-days" size={16} />
                       </span>
                       <span>
@@ -155,7 +163,7 @@ export function RecurringPage() {
                   </td>
                   <td>
                     <strong
-                      className={item.type === 'expense' ? 'amount-negative' : 'amount-positive'}
+                      className={item.type === 'expense' ? 'amount--negative' : 'amount--positive'}
                     >
                       {item.type === 'expense' ? '-' : '+'}
                       {formatCurrency(item.amount)}
@@ -179,27 +187,45 @@ export function RecurringPage() {
         title={t('recurring.newPayment')}
       >
         <form
-          className="form-stack"
+          className="form__stack"
           onSubmit={form.handleSubmit((values) =>
             mutation.mutate({ ...values, currency: 'EUR', active: true }),
           )}
         >
-          <label className="form-field">
+          <label className="form__field">
             <span>{t('common.name')}</span>
             <input
               placeholder={t('recurring.descriptionPlaceholder')}
+              className={fieldClassName(Boolean(form.formState.errors.description))}
+              aria-invalid={Boolean(form.formState.errors.description)}
+              aria-describedby="recurring-description-error"
               {...form.register('description')}
             />
+            <FieldError
+              id="recurring-description-error"
+              message={form.formState.errors.description?.message}
+            />
           </label>
-          <div className="form-grid-2">
-            <label className="form-field">
+          <div className="form__grid--two">
+            <label className="form__field">
               <span>{t('common.type')}</span>
-              <select {...form.register('type')}>
-                <option value="expense">{t('common.expense')}</option>
-                <option value="income">{t('common.incomeSingular')}</option>
-              </select>
+              <Controller
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <AppSelect
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    options={[
+                      { value: 'expense', label: t('common.expense') },
+                      { value: 'income', label: t('common.incomeSingular') },
+                    ]}
+                  />
+                )}
+              />
             </label>
-            <label className="form-field">
+            <label className="form__field">
               <span>{t('common.amount')}</span>
               <Controller
                 control={form.control}
@@ -211,57 +237,120 @@ export function RecurringPage() {
                     onBlur={field.onBlur}
                     getInputRef={field.ref}
                     onValueChange={field.onChange}
+                    className={fieldClassName(Boolean(form.formState.errors.amount))}
+                    aria-invalid={Boolean(form.formState.errors.amount)}
+                    aria-describedby="recurring-amount-error"
                     currency="EUR"
                     placeholder={t('quickAdd.amountPlaceholder')}
                   />
                 )}
               />
+              <FieldError
+                id="recurring-amount-error"
+                message={form.formState.errors.amount?.message}
+              />
             </label>
           </div>
-          <label className="form-field">
+          <label className="form__field">
             <span>{t('common.account')}</span>
-            <select {...form.register('accountId')}>
-              <option value="">{t('common.noAccount')}</option>
-              {accounts.data?.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name}
-                </option>
-              ))}
-            </select>
+            <Controller
+              control={form.control}
+              name="accountId"
+              render={({ field }) => (
+                <AppSelect
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder={t('common.noAccount')}
+                  options={(accounts.data ?? []).map((account) => ({
+                    value: account.id,
+                    label: account.name,
+                  }))}
+                  invalid={Boolean(form.formState.errors.accountId)}
+                  describedBy="recurring-account-error"
+                  isSearchable
+                  isClearable
+                />
+              )}
+            />
+            <FieldError
+              id="recurring-account-error"
+              message={form.formState.errors.accountId?.message}
+            />
           </label>
-          <div className="form-grid-2">
-            <label className="form-field">
+          <div className="form__grid--two">
+            <label className="form__field">
               <span>{t('recurring.frequency')}</span>
-              <select {...form.register('frequency')}>
-                <option value="weekly">{t('common.weekly')}</option>
-                <option value="monthly">{t('common.monthly')}</option>
-                <option value="yearly">{t('common.yearly')}</option>
-                <option value="custom">{t('common.custom')}</option>
-              </select>
+              <Controller
+                control={form.control}
+                name="frequency"
+                render={({ field }) => (
+                  <AppSelect
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    options={[
+                      { value: 'weekly', label: t('common.weekly') },
+                      { value: 'monthly', label: t('common.monthly') },
+                      { value: 'yearly', label: t('common.yearly') },
+                      { value: 'custom', label: t('common.custom') },
+                    ]}
+                  />
+                )}
+              />
             </label>
-            <label className="form-field">
+            <label className="form__field">
               <span>{t('common.category')}</span>
-              <select {...form.register('categoryId')}>
-                <option value="">{t('common.noCategory')}</option>
-                {categories.data?.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+              <Controller
+                control={form.control}
+                name="categoryId"
+                render={({ field }) => (
+                  <AppSelect
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    placeholder={t('common.noCategory')}
+                    options={(categories.data ?? []).map((category) => ({
+                      value: category.id,
+                      label: category.name,
+                    }))}
+                    isClearable
+                  />
+                )}
+              />
             </label>
           </div>
-          <div className="form-grid-2">
-            <label className="form-field">
+          <div className="form__grid--two">
+            <label className="form__field">
               <span>{t('recurring.start')}</span>
-              <input type="date" {...form.register('startDate')} />
+              <input
+                type="date"
+                className={fieldClassName(Boolean(form.formState.errors.startDate))}
+                aria-invalid={Boolean(form.formState.errors.startDate)}
+                aria-describedby="recurring-start-error"
+                {...form.register('startDate')}
+              />
+              <FieldError
+                id="recurring-start-error"
+                message={form.formState.errors.startDate?.message}
+              />
             </label>
-            <label className="form-field">
+            <label className="form__field">
               <span>{t('recurring.nextCharge')}</span>
-              <input type="date" {...form.register('nextRunAt')} />
+              <input
+                type="date"
+                className={fieldClassName(Boolean(form.formState.errors.nextRunAt))}
+                aria-invalid={Boolean(form.formState.errors.nextRunAt)}
+                aria-describedby="recurring-next-error"
+                {...form.register('nextRunAt')}
+              />
+              <FieldError
+                id="recurring-next-error"
+                message={form.formState.errors.nextRunAt?.message}
+              />
             </label>
           </div>
-          <div className="modal-actions">
+          <div className="modal__actions">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
               {t('common.cancel')}
             </Button>

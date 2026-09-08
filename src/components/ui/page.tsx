@@ -16,8 +16,8 @@ export function Page({
   action?: ReactNode
 }>) {
   return (
-    <div className="page-shell">
-      <div className="page-heading">
+    <div className="page">
+      <div className="page__heading">
         <div>
           {eyebrow && <span className="eyebrow">{eyebrow}</span>}
           <h2>{title}</h2>
@@ -42,8 +42,8 @@ export function EmptyState({
   action?: ReactNode
 }) {
   return (
-    <div className="empty-state">
-      <span className="empty-icon">
+    <div className="empty">
+      <span className="empty__icon">
         <Icon name={icon} size={22} />
       </span>
       <h3>{title}</h3>
