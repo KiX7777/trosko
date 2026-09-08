@@ -26,7 +26,7 @@ Apply `supabase/migrations/20260907000000_initial_expense_tracker.sql` and creat
 npm run server:dev
 ```
 
-The NestJS service exposes `/api/ocr/parse`, `/api/export/pdf`, `/api/exchange-rates`, and `/api/recurring/process`. Configure `PORT` and optionally `EXCHANGE_RATES_ENDPOINT`. OCR intentionally returns a review item until a provider is configured; it never silently creates a transaction from an unverified receipt.
+The NestJS service exposes `/api/ocr/parse`, `/api/export/pdf`, `/api/exchange-rates`, and `/api/recurring/process`. Configure `PORT` and optionally `EXCHANGE_RATES_ENDPOINT`. OCR uses `tesseract.js` with Croatian and English language data and supports image files plus scanned PDFs. The endpoint returns extracted data for review; it never silently creates a transaction from an unverified receipt. Set `OCR_LANG_PATH` to a local tessdata mirror if the server runs without outbound network access.
 
 ## Verification
 

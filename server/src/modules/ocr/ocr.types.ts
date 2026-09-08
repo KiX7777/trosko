@@ -4,12 +4,14 @@ export interface OcrRequest {
 }
 
 export interface OcrResult {
-  status: 'needs_review' | 'failed'
+  status: 'completed' | 'needs_review' | 'failed'
   sourceFile?: string
   merchant?: string
   date?: string
   currency?: string
   total?: number
   suggestedCategory?: string
+  confidence?: number
+  extractedText?: string
   message: string
 }
