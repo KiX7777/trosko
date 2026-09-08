@@ -102,6 +102,7 @@ export interface RecurringTransaction {
   nextRunAt: string
   endDate?: string
   active: boolean
+  autoLog: boolean
   description: string
   createdAt: string
   updatedAt: string

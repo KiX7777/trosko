@@ -30,6 +30,7 @@ const schema = z.object({
   interval: z.coerce.number().positive(t('validation.positiveAmount')),
   startDate: z.string().min(1, t('validation.invalidDate')),
   nextRunAt: z.string().min(1, t('validation.invalidDate')),
+  autoLog: z.boolean(),
 })
 type RecurringFormInput = z.input<typeof schema>
 type RecurringFormOutput = z.output<typeof schema>
@@ -51,6 +52,7 @@ export function RecurringPage() {
       startDate: '2026-09-07',
       nextRunAt: '2026-10-07',
       amount: 0,
+      autoLog: false,
     },
   })
   const mutation = useMutation({
@@ -65,6 +67,7 @@ export function RecurringPage() {
         startDate: '2026-09-07',
         nextRunAt: '2026-10-07',
         amount: 0,
+        autoLog: false,
       })
       toast.success(t('recurring.save'))
     },
@@ -124,6 +127,7 @@ export function RecurringPage() {
                 <th>{t('recurring.ritam')}</th>
                 <th>{t('recurring.next')}</th>
                 <th>{t('recurring.status')}</th>
+                <th>{t('recurring.autoLog')}</th>
                 <th>{t('common.amount')}</th>
                 <th />
               </tr>
@@ -159,6 +163,11 @@ export function RecurringPage() {
                   <td>
                     <StatusPill tone={item.active ? 'positive' : 'neutral'}>
                       {item.active ? t('recurring.upcoming') : t('recurring.paused')}
+                    </StatusPill>
+                  </td>
+                  <td>
+                    <StatusPill tone={item.autoLog ? 'positive' : 'neutral'}>
+                      {item.autoLog ? t('recurring.autoLogOn') : t('recurring.autoLogOff')}
                     </StatusPill>
                   </td>
                   <td>
@@ -350,6 +359,13 @@ export function RecurringPage() {
               />
             </label>
           </div>
+          <label className="recurring__auto-log">
+            <input type="checkbox" {...form.register('autoLog')} />
+            <span>
+              <strong>{t('recurring.autoLog')}</strong>
+              <small>{t('recurring.autoLogDescription')}</small>
+            </span>
+          </label>
           <div className="modal__actions">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
               {t('common.cancel')}

@@ -67,6 +67,7 @@ create table public.recurring_transactions (
   next_run_at date not null,
   end_date date,
   active boolean not null default true,
+  auto_log boolean not null default false,
   description text not null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

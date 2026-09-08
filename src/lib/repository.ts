@@ -8,6 +8,7 @@ import {
   demoUserId,
 } from './mock-data'
 import { supabase } from './supabase'
+import { addDays, addMonths, addWeeks, addYears, formatISO, parseISO } from 'date-fns'
 import type {
   Account,
   Category,
@@ -148,10 +149,79 @@ function mapRecurring(row: Row): RecurringTransaction {
     nextRunAt: row.next_run_at,
     endDate: row.end_date ?? undefined,
     active: Boolean(row.active),
+    autoLog: Boolean(row.auto_log),
     description: row.description,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   }
+}
+
+function nextRecurringDate(item: RecurringTransaction, date: string) {
+  const parsedDate = parseISO(date)
+  const nextDate =
+    item.frequency === 'weekly'
+      ? addWeeks(parsedDate, item.interval)
+      : item.frequency === 'monthly'
+        ? addMonths(parsedDate, item.interval)
+        : item.frequency === 'yearly'
+          ? addYears(parsedDate, item.interval)
+          : addDays(parsedDate, item.interval)
+  return formatISO(nextDate, { representation: 'date' })
+}
+
+let demoRecurringProcessing: Promise<void> | null = null
+
+async function processDueDemoRecurringTransactions() {
+  if (demoRecurringProcessing) return demoRecurringProcessing
+
+  demoRecurringProcessing = (async () => {
+    const today = formatISO(new Date(), { representation: 'date' })
+    const recurring = read('recurring', demoRecurring)
+    const dueItems = recurring.filter(
+      (item) =>
+        item.active &&
+        item.autoLog &&
+        item.nextRunAt <= today &&
+        (!item.endDate || item.nextRunAt <= item.endDate),
+    )
+    if (!dueItems.length) return
+
+    for (const item of dueItems) {
+      let nextRunAt = item.nextRunAt
+      while (nextRunAt <= today && (!item.endDate || nextRunAt <= item.endDate)) {
+        await createTransaction({
+          accountId: item.accountId,
+          categoryId: item.categoryId,
+          type: item.type,
+          amount: item.amount,
+          currency: item.currency,
+          description: item.description,
+          transactionDate: nextRunAt,
+          recurringTransactionId: item.id,
+        })
+        nextRunAt = nextRecurringDate(item, nextRunAt)
+      }
+
+      const updatedRecurring = read('recurring', demoRecurring)
+      write(
+        'recurring',
+        updatedRecurring.map((current) =>
+          current.id === item.id
+            ? {
+                ...current,
+                nextRunAt,
+                active: current.endDate ? nextRunAt <= current.endDate : current.active,
+                updatedAt: new Date().toISOString(),
+              }
+            : current,
+        ),
+      )
+    }
+  })().finally(() => {
+    demoRecurringProcessing = null
+  })
+
+  return demoRecurringProcessing
 }
 function mapSavedView(row: Row): SavedView {
   return {
@@ -905,6 +975,8 @@ export async function deleteTransaction(transactionId: string): Promise<void> {
 
 export async function getRecurring(): Promise<RecurringTransaction[]> {
   if (supabase) {
+    const { error: processError } = await client().rpc('process_due_recurring_transactions')
+    if (processError) throw processError
     const userId = await currentUserId()
     const { data, error } = await client()
       .from('recurring_transactions')
@@ -914,6 +986,7 @@ export async function getRecurring(): Promise<RecurringTransaction[]> {
     if (error) throw error
     return (data ?? []).map(mapRecurring)
   }
+  await processDueDemoRecurringTransactions()
   return delay(read('recurring', demoRecurring))
 }
 
@@ -937,6 +1010,7 @@ export async function createRecurring(
         next_run_at: input.nextRunAt,
         end_date: input.endDate ?? null,
         active: input.active,
+        auto_log: input.autoLog,
         description: input.description,
       })
       .select('*')

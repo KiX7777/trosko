@@ -2394,6 +2394,36 @@ tbody tr:hover {
 .form__field input[type='color'] {
   padding: var(--space-1);
 }
+.recurring__auto-log {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: var(--size-1) solid var(--shell-border);
+  border-radius: var(--size-10);
+  color: var(--shell-secondary);
+  background: var(--shell-panel-2);
+  cursor: pointer;
+}
+.recurring__auto-log input {
+  width: auto;
+  min-height: auto;
+  margin-top: var(--size-2);
+  accent-color: var(--shell-primary);
+}
+.recurring__auto-log span {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3);
+}
+.recurring__auto-log strong {
+  color: var(--shell-text);
+  font-size: var(--space-3);
+}
+.recurring__auto-log small {
+  color: var(--shell-muted);
+  font-size: var(--size-10);
+}
 .theme__options {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

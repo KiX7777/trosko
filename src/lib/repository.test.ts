@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { getAccounts, getTransactions, resetDemoData, updateTransaction } from './repository'
+import {
+  createRecurring,
+  getAccounts,
+  getRecurring,
+  getTransactions,
+  resetDemoData,
+  updateTransaction,
+} from './repository'
 
 describe('updateTransaction', () => {
   beforeEach(() => {
@@ -55,5 +62,76 @@ describe('updateTransaction', () => {
     expect(transferEntries.map((transaction) => transaction.accountId)).toEqual(
       expect.arrayContaining(['account-current', 'account-savings']),
     )
+  })
+})
+
+describe('recurring auto-log', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    resetDemoData()
+  })
+
+  it('creates due transactions and advances an auto-log template', async () => {
+    await createRecurring({
+      accountId: 'account-current',
+      categoryId: 'category-subscriptions',
+      type: 'expense',
+      amount: 20,
+      currency: 'EUR',
+      frequency: 'monthly',
+      interval: 1,
+      startDate: '2020-01-01',
+      nextRunAt: '2020-01-01',
+      endDate: '2020-03-01',
+      active: true,
+      autoLog: true,
+      description: 'Test subscription',
+    })
+
+    const recurring = await getRecurring()
+    const created = (await getTransactions()).filter(
+      (transaction) => transaction.description === 'Test subscription',
+    )
+
+    expect(created).toHaveLength(3)
+    expect(created.map((transaction) => transaction.transactionDate)).toEqual([
+      '2020-01-01',
+      '2020-02-01',
+      '2020-03-01',
+    ])
+    expect(recurring.find((item) => item.description === 'Test subscription')).toMatchObject({
+      active: false,
+      autoLog: true,
+      nextRunAt: '2020-04-01',
+    })
+  })
+
+  it('keeps due templates manual when auto-log is disabled', async () => {
+    await createRecurring({
+      accountId: 'account-current',
+      type: 'expense',
+      amount: 20,
+      currency: 'EUR',
+      frequency: 'monthly',
+      interval: 1,
+      startDate: '2020-01-01',
+      nextRunAt: '2020-01-01',
+      active: true,
+      autoLog: false,
+      description: 'Manual subscription',
+    })
+
+    await getRecurring()
+
+    expect(
+      (await getTransactions()).some((item) => item.description === 'Manual subscription'),
+    ).toBe(false)
+    expect(
+      (await getRecurring()).find((item) => item.description === 'Manual subscription'),
+    ).toMatchObject({
+      active: true,
+      autoLog: false,
+      nextRunAt: '2020-01-01',
+    })
   })
 })
