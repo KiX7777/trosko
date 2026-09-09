@@ -196,7 +196,7 @@ create policy saved_views_insert_own on public.saved_views for insert to authent
 create policy saved_views_update_own on public.saved_views for update to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
 create policy saved_views_delete_own on public.saved_views for delete to authenticated using ((select auth.uid()) = user_id);
 
--- Storage path convention: receipts/{user_id}/{transaction_id}/receipt.ext
+-- Storage path convention inside the `receipts` bucket: {user_id}/{receipt_id}/receipt.ext
 create policy receipts_storage_select on storage.objects for select to authenticated using (
   bucket_id = 'receipts' and (storage.foldername(name))[1] = (select auth.uid()::text)
 );

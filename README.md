@@ -20,7 +20,7 @@ Troško is organized around a simple loop:
 3. Review the dashboard for balance, income, expenses, net cash flow, category distribution, and recent activity.
 4. Use analytics for a selected period and daily expense detail.
 5. Define recurring items such as rent, subscriptions, or salary. Items with auto-log enabled can create transactions when they become due.
-6. Upload a receipt or scanned PDF for OCR. Extracted fields are returned for review; OCR never silently creates a transaction.
+6. Upload a receipt or scanned PDF for OCR. The original file and OCR result are retained in Supabase mode; extracted fields stay editable and OCR never silently creates a transaction.
 7. Export transaction rows to PDF through the server boundary when that service is running.
 
 The main routes are:
@@ -127,7 +127,7 @@ The NestJS application has a global `/api` prefix.
 
 ### `POST /api/ocr/parse`
 
-Accepts a multipart `file` containing an image or PDF up to 10 MB, or a text body for parser testing. PDF input is rendered page-by-page and OCR is limited to 10 pages. The response contains a status, source file, confidence where available, and suggested fields such as merchant, date, currency, total, and category. The frontend must let the user review those values before saving anything.
+Accepts a multipart `file` containing an image or PDF up to 10 MB, or a text body for parser testing. PDF input is rendered page-by-page and OCR is limited to 10 pages. The response contains a status, source file, confidence where available, and suggested fields such as merchant, date, currency, total, and category. The client records the result against a receipt and requires the user to review those values before explicitly creating the linked transaction.
 
 ### `GET /api/export/pdf`
 

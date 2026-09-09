@@ -1,17 +1,82 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
+  createReceipt,
   createRecurring,
+  createTransaction,
   deleteCategory,
+  deleteReceipt,
   getDashboardSummary,
   getCategories,
   getAccounts,
   getRecurring,
+  getReceipts,
   getTransactions,
   resetDemoData,
   updateCategory,
+  updateReceiptOcr,
   updateRecurring,
   updateTransaction,
 } from './repository'
+
+describe('receipts', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    resetDemoData()
+  })
+
+  it('persists OCR metadata and links the confirmed receipt to a transaction', async () => {
+    const receipt = await createReceipt(new File(['receipt'], 'konzum.jpg', { type: 'image/jpeg' }))
+    const reviewed = await updateReceiptOcr(receipt.id, 'completed', {
+      merchant: 'Konzum',
+      date: '2026-09-08',
+      currency: 'EUR',
+      total: 12.5,
+      suggestedCategory: 'Hrana',
+      confidence: 91,
+    })
+    const transaction = await createTransaction({
+      accountId: 'account-current',
+      categoryId: 'category-groceries',
+      type: 'expense',
+      amount: 12.5,
+      currency: 'EUR',
+      description: 'Konzum',
+      merchant: 'Konzum',
+      transactionDate: '2026-09-08',
+      receiptId: receipt.id,
+    })
+
+    expect(reviewed).toMatchObject({ ocrStatus: 'completed', ocrData: { total: 12.5 } })
+    expect(transaction.receiptId).toBe(receipt.id)
+    expect(await getReceipts()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: receipt.id, transactionId: transaction.id }),
+      ]),
+    )
+  })
+
+  it('removes a receipt without deleting its linked transaction', async () => {
+    const receipt = await createReceipt(new File(['receipt'], 'racun.jpg', { type: 'image/jpeg' }))
+    const transaction = await createTransaction({
+      accountId: 'account-current',
+      type: 'expense',
+      amount: 5,
+      currency: 'EUR',
+      description: 'Test račun',
+      transactionDate: '2026-09-08',
+      receiptId: receipt.id,
+    })
+
+    await deleteReceipt(receipt)
+
+    expect(await getReceipts()).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: receipt.id })]),
+    )
+    expect(
+      (await getTransactions()).find((item) => item.id === transaction.id)?.receiptId,
+    ).toBeUndefined()
+  })
+})
 
 describe('updateTransaction', () => {
   beforeEach(() => {

@@ -28,6 +28,8 @@ import type {
   Label,
   Period,
   Profile,
+  Receipt,
+  ReceiptOcrData,
   RecurringTransaction,
   SavedView,
   Transaction,
@@ -145,6 +147,18 @@ function mapTransaction(row: Row): Transaction {
     receiptId: row.receipt_id ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  }
+}
+function mapReceipt(row: Row): Receipt {
+  return {
+    id: row.id,
+    userId: row.user_id,
+    transactionId: row.transaction_id ?? undefined,
+    filePath: row.file_path,
+    mimeType: row.mime_type,
+    ocrStatus: row.ocr_status,
+    ocrData: row.ocr_data ?? undefined,
+    createdAt: row.created_at,
   }
 }
 function mapRecurring(row: Row): RecurringTransaction {
@@ -782,6 +796,131 @@ export async function createSavedView(
   return delay(view)
 }
 
+export async function getReceipts(): Promise<Receipt[]> {
+  if (supabase) {
+    const userId = await currentUserId()
+    const { data, error } = await client()
+      .from('receipts')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    return (data ?? []).map(mapReceipt)
+  }
+  return delay(read<Receipt[]>('receipts', []))
+}
+
+function safeReceiptFileName(fileName: string) {
+  const fallback = 'receipt'
+  const sanitized = fileName
+    .normalize('NFKD')
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return sanitized || fallback
+}
+
+export async function createReceipt(file: File): Promise<Receipt> {
+  const timestamp = new Date().toISOString()
+  if (supabase) {
+    const userId = await currentUserId()
+    const receiptId = crypto.randomUUID()
+    const filePath = `${userId}/${receiptId}/${safeReceiptFileName(file.name)}`
+    const storage = client().storage.from('receipts')
+    const { error: uploadError } = await storage.upload(filePath, file, {
+      contentType: file.type || 'application/octet-stream',
+      upsert: false,
+    })
+    if (uploadError) throw uploadError
+
+    const { data, error } = await client()
+      .from('receipts')
+      .insert({
+        id: receiptId,
+        user_id: userId,
+        file_path: filePath,
+        mime_type: file.type || 'application/octet-stream',
+        ocr_status: 'processing',
+      })
+      .select('*')
+      .single()
+    if (error) {
+      await storage.remove([filePath])
+      throw error
+    }
+    return mapReceipt(data)
+  }
+
+  const receipt: Receipt = {
+    id: id('receipt'),
+    userId: demoUserId,
+    filePath: file.name,
+    mimeType: file.type || 'application/octet-stream',
+    ocrStatus: 'processing',
+    createdAt: timestamp,
+  }
+  write('receipts', [receipt, ...read<Receipt[]>('receipts', [])])
+  return delay(receipt)
+}
+
+export async function updateReceiptOcr(
+  receiptId: string,
+  status: Extract<Receipt['ocrStatus'], 'completed' | 'needs_review' | 'failed'>,
+  ocrData: ReceiptOcrData,
+): Promise<Receipt> {
+  if (supabase) {
+    const userId = await currentUserId()
+    const { data, error } = await client()
+      .from('receipts')
+      .update({ ocr_status: status, ocr_data: ocrData })
+      .eq('id', receiptId)
+      .eq('user_id', userId)
+      .select('*')
+      .single()
+    if (error) throw error
+    return mapReceipt(data)
+  }
+
+  const receipts = read<Receipt[]>('receipts', [])
+  const current = receipts.find((receipt) => receipt.id === receiptId)
+  if (!current) throw new Error('Račun nije pronađen.')
+  const updated: Receipt = { ...current, ocrStatus: status, ocrData }
+  write(
+    'receipts',
+    receipts.map((receipt) => (receipt.id === receiptId ? updated : receipt)),
+  )
+  return delay(updated)
+}
+
+export async function markReceiptOcrFailed(receiptId: string, message: string): Promise<Receipt> {
+  return updateReceiptOcr(receiptId, 'failed', { message })
+}
+
+export async function deleteReceipt(receipt: Receipt): Promise<void> {
+  if (supabase) {
+    const userId = await currentUserId()
+    const { error } = await client()
+      .from('receipts')
+      .delete()
+      .eq('id', receipt.id)
+      .eq('user_id', userId)
+    if (error) throw error
+    await client().storage.from('receipts').remove([receipt.filePath])
+    return
+  }
+
+  write(
+    'receipts',
+    read<Receipt[]>('receipts', []).filter((candidate) => candidate.id !== receipt.id),
+  )
+  write(
+    'transactions',
+    read<Transaction[]>('transactions', demoTransactions).map((transaction) =>
+      transaction.receiptId === receipt.id ? { ...transaction, receiptId: undefined } : transaction,
+    ),
+  )
+  return delay(undefined)
+}
+
 export async function getTransactions(filters: TransactionFilters = {}): Promise<Transaction[]> {
   if (supabase) {
     const userId = await currentUserId()
@@ -837,6 +976,7 @@ export async function createTransaction(input: CreateTransactionInput): Promise<
       notes: input.notes ?? null,
       recurring_transaction_id: input.recurringTransactionId ?? null,
       transfer_group_id: groupId,
+      receipt_id: input.receiptId ?? null,
     }
     const { data, error } = await client()
       .from('transactions')
@@ -855,10 +995,23 @@ export async function createTransaction(input: CreateTransactionInput): Promise<
         .insert(input.labelIds.map((labelId) => ({ transaction_id: data.id, label_id: labelId })))
       if (labelsInsert.error) throw labelsInsert.error
     }
+    if (input.receiptId) {
+      const { error: receiptError } = await client()
+        .from('receipts')
+        .update({ transaction_id: data.id })
+        .eq('id', input.receiptId)
+        .eq('user_id', userId)
+      if (receiptError) throw receiptError
+    }
     if (input.type === 'transfer' && input.transferAccountId) {
       const paired = await client()
         .from('transactions')
-        .insert({ ...basePayload, account_id: input.transferAccountId, transfer_group_id: groupId })
+        .insert({
+          ...basePayload,
+          account_id: input.transferAccountId,
+          transfer_group_id: groupId,
+          receipt_id: null,
+        })
         .select('*')
         .single()
       if (paired.error) throw paired.error
@@ -872,6 +1025,12 @@ export async function createTransaction(input: CreateTransactionInput): Promise<
   const transactions = read('transactions', demoTransactions)
   const accounts = read('accounts', demoAccounts)
   const timestamp = new Date().toISOString()
+  if (
+    input.receiptId &&
+    !read<Receipt[]>('receipts', []).some((item) => item.id === input.receiptId)
+  ) {
+    throw new Error('Račun nije pronađen.')
+  }
   const transaction: Transaction = {
     id: id('tx'),
     userId: demoUserId,
@@ -888,6 +1047,7 @@ export async function createTransaction(input: CreateTransactionInput): Promise<
     notes: input.notes,
     labelIds: input.labelIds ?? [],
     recurringTransactionId: input.recurringTransactionId,
+    receiptId: input.receiptId,
     createdAt: timestamp,
     updatedAt: timestamp,
   }
@@ -908,6 +1068,7 @@ export async function createTransaction(input: CreateTransactionInput): Promise<
       id: id('tx'),
       accountId: input.transferAccountId,
       transferGroupId: transaction.id,
+      receiptId: undefined,
       createdAt: timestamp,
       updatedAt: timestamp,
     }
@@ -918,6 +1079,17 @@ export async function createTransaction(input: CreateTransactionInput): Promise<
         account.id === input.transferAccountId
           ? { ...account, balance: account.balance + input.amount, updatedAt: timestamp }
           : account,
+      ),
+    )
+  }
+  if (input.receiptId) {
+    const receipts = read<Receipt[]>('receipts', [])
+    write(
+      'receipts',
+      receipts.map((candidate) =>
+        candidate.id === input.receiptId
+          ? { ...candidate, transactionId: transaction.id }
+          : candidate,
       ),
     )
   }
@@ -982,6 +1154,7 @@ export async function updateTransaction(input: UpdateTransactionInput): Promise<
       recurring_transaction_id:
         input.recurringTransactionId ?? current.recurring_transaction_id ?? null,
       transfer_group_id: transferGroupId,
+      receipt_id: input.receiptId ?? current.receipt_id ?? null,
       updated_at: new Date().toISOString(),
     }
     const { data, error } = await client()
@@ -1003,6 +1176,14 @@ export async function updateTransaction(input: UpdateTransactionInput): Promise<
         .from('transaction_labels')
         .insert(input.labelIds.map((labelId) => ({ transaction_id: input.id, label_id: labelId })))
       if (labelsInsert.error) throw labelsInsert.error
+    }
+    if (input.receiptId && input.receiptId !== current.receipt_id) {
+      const { error: receiptError } = await client()
+        .from('receipts')
+        .update({ transaction_id: data.id })
+        .eq('id', input.receiptId)
+        .eq('user_id', userId)
+      if (receiptError) throw receiptError
     }
 
     if (input.type === 'transfer') {
@@ -1101,9 +1282,22 @@ export async function updateTransaction(input: UpdateTransactionInput): Promise<
     notes: input.notes ?? current.notes,
     labelIds: input.labelIds ?? current.labelIds,
     recurringTransactionId: input.recurringTransactionId ?? current.recurringTransactionId,
+    receiptId: input.receiptId ?? current.receiptId,
     transferGroupId:
       input.type === 'transfer' ? (current.transferGroupId ?? current.id) : undefined,
     updatedAt: timestamp,
+  }
+  if (input.receiptId && input.receiptId !== current.receiptId) {
+    const receipts = read<Receipt[]>('receipts', [])
+    if (!receipts.some((receipt) => receipt.id === input.receiptId)) {
+      throw new Error('Račun nije pronađen.')
+    }
+    write(
+      'receipts',
+      receipts.map((receipt) =>
+        receipt.id === input.receiptId ? { ...receipt, transactionId: input.id } : receipt,
+      ),
+    )
   }
   let paired: Transaction | undefined
   if (input.type === 'transfer') {
@@ -1299,6 +1493,7 @@ export async function resetDemoData() {
     'categories',
     'labels',
     'saved-views',
+    'receipts',
     'transactions',
     'recurring',
   ].forEach((key) => localStorage.removeItem(`${storagePrefix}${key}`))

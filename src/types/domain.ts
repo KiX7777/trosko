@@ -4,6 +4,17 @@ export type CategoryType = 'expense' | 'income'
 export type RecurrenceFrequency = 'weekly' | 'monthly' | 'yearly' | 'custom'
 export type OcrStatus = 'pending' | 'processing' | 'needs_review' | 'completed' | 'failed'
 
+export interface ReceiptOcrData {
+  merchant?: string
+  date?: string
+  currency?: string
+  total?: number
+  suggestedCategory?: string
+  confidence?: number
+  extractedText?: string
+  message?: string
+}
+
 export type TransactionFilters = {
   types?: TransactionType[]
   accounts?: string[]
@@ -124,13 +135,7 @@ export interface Receipt {
   filePath: string
   mimeType: string
   ocrStatus: OcrStatus
-  ocrData?: {
-    merchant?: string
-    date?: string
-    currency?: string
-    total?: number
-    suggestedCategory?: string
-  }
+  ocrData?: ReceiptOcrData
   createdAt: string
 }
 
@@ -175,6 +180,7 @@ export interface CreateTransactionInput {
   labelIds?: string[]
   recurringTransactionId?: string
   transferAccountId?: string
+  receiptId?: string
 }
 
 export interface UpdateTransactionInput extends CreateTransactionInput {

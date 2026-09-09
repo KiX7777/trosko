@@ -51,6 +51,8 @@ export type SaveTransactionInput = {
   transactionDate: string
   transferAccountId?: string
   labelId?: string
+  currency?: string
+  receiptId?: string
 }
 
 export function useSaveTransactionMutation(
@@ -64,16 +66,22 @@ export function useSaveTransactionMutation(
         ? updateTransaction({
             ...values,
             id: transaction.id,
-            currency: transaction.currency,
+            currency: values.currency ?? transaction.currency,
             labelIds: labelId ? [labelId] : [],
             notes: transaction.notes,
             recurringTransactionId: transaction.recurringTransactionId,
+            receiptId: values.receiptId ?? transaction.receiptId,
           })
-        : createTransaction({ ...values, currency: 'EUR', labelIds: labelId ? [labelId] : [] }),
+        : createTransaction({
+            ...values,
+            currency: values.currency ?? 'EUR',
+            labelIds: labelId ? [labelId] : [],
+          }),
     onSuccess: (_data, variables) => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.transactions() })
       void queryClient.invalidateQueries({ queryKey: queryKeys.dashboardRoot() })
       void queryClient.invalidateQueries({ queryKey: queryKeys.accounts() })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.receipts() })
       callbacks.onSuccess?.(variables)
     },
     onError: callbacks.onError,

@@ -7,7 +7,7 @@ Supabase is the optional production persistence and authentication layer. The br
 - `20260907000000_initial_expense_tracker.sql` creates enums, profiles, accounts, categories, labels, recurring transactions, receipts, transactions, transaction labels, and saved views. It also adds indexes, grants, ownership RLS policies, and policies for the `receipts` Storage bucket.
 - `20260908000000_recurring_auto_log.sql` adds the `auto_log` column and the `process_due_recurring_transactions` RPC.
 
-Apply the migrations with the Supabase CLI or SQL editor, then create a Storage bucket named `receipts`. Receipt object paths are expected to start with the authenticated user's ID, for example `receipts/{user_id}/{transaction_id}/receipt.ext`.
+Apply the migrations with the Supabase CLI or SQL editor, then create a private Storage bucket named `receipts`. Receipt object paths start with the authenticated user's ID, for example `{user_id}/{receipt_id}/receipt.ext`.
 
 ## Security model
 

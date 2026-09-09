@@ -29,6 +29,10 @@
   color: var(--shell-muted);
   font-size: var(--size-13);
 }
+.receipts__dropzone > small {
+  color: var(--shell-muted);
+  font-size: var(--size-11);
+}
 .receipts__upload-orb {
   display: grid;
   place-items: center;
@@ -92,6 +96,35 @@
   border-radius: var(--radius-pill);
   white-space: nowrap;
 }
+.receipts__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4);
+}
+.receipts__review-note {
+  margin: 0;
+  color: var(--shell-muted);
+  line-height: 1.5;
+}
+.receipts__source-text {
+  border: var(--size-1) solid var(--shell-border);
+  border-radius: var(--size-10);
+  padding: var(--size-10) var(--size-12);
+}
+.receipts__source-text summary {
+  cursor: pointer;
+  color: var(--shell-text);
+  font-weight: 700;
+}
+.receipts__source-text pre {
+  max-height: var(--size-260);
+  margin: var(--size-10) 0 0;
+  overflow: auto;
+  color: var(--shell-muted);
+  font: inherit;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
 /* Media-query breakpoints stay literal because CSS custom properties are not valid here. */
 @media (max-width: 900px) {
   .receipts__layout {
@@ -99,5 +132,16 @@
   }
   .receipts__dropzone {
     min-height: var(--size-210);
+  }
+  .receipts__row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+  .receipts__status {
+    grid-column: 2;
+    justify-self: start;
+  }
+  .receipts__actions {
+    grid-column: 3;
+    grid-row: 1 / span 2;
   }
 }

@@ -109,9 +109,15 @@ function findMerchant(lines: string[]): string | undefined {
 
 function findCategory(text: string): string | undefined {
   const categoryKeywords: Array<[string, string]> = [
-    ['Hrana', 'hrana|restoran|kafić|caffe|market|konzum|spar|lidl|plodine|pekara'],
-    ['Prijevoz', 'gorivo|benz|ina|taxi|uber|bolt|parking|cestarina'],
-    ['Stanovanje', 'struja|voda|plin|najam|stanarina|internet|telekom'],
+    [
+      'Hrana',
+      'hrana|restoran|kafić|caffe|market|konzum|spar|lidl|plodine|pekara|eurospin|wolt|glovo',
+    ],
+    ['Prijevoz', 'gorivo|benz|ina|taxi|uber|bolt|parking|cestarina|petrol|shell|lukoil|autocesta'],
+    [
+      'Stanovanje',
+      'struja|voda|plin|najam|stanarina|internet|telekom|optika|telemach|a1|vipnet|huawei',
+    ],
     ['Zdravlje', 'ljekarna|apoteka|doktor|poliklinika|zub|farmacija'],
     ['Kupovina', 'trgovina|shop|odjeća|obuća|tehnika'],
   ]
