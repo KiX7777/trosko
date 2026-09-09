@@ -48,7 +48,7 @@ export function AuthPage() {
       <div className="auth__card">
         <div className="brand__lockup">
           <span className="brand__mark">
-            <Icon name="trend" size={18} />
+            <img src="/icons/icon-192.svg" alt="" aria-hidden="true" />
           </span>
           <span>{t('brand.name')}</span>
         </div>

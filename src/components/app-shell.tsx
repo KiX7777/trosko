@@ -80,7 +80,7 @@ export function AppShell() {
       <aside className={`sidebar ${sidebarOpen ? 'is-open' : ''}`}>
         <div className="brand__lockup">
           <span className="brand__mark">
-            <Icon name="trend" size={18} />
+            <img src="/icons/icon-192.svg" alt="" aria-hidden="true" />
           </span>
           <span>{t('brand.name')}</span>
         </div>

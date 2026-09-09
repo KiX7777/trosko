@@ -360,7 +360,7 @@
   "auth.passwordMin": "Lozinka mora imati najmanje 6 znakova.",
   "auth.accountCreated": "Račun je kreiran",
   "auth.welcomeToast": "Dobro došao natrag",
-  "auth.loading": "Učitavam sigurnu sesiju…",
+  "auth.loading": "Učitavam...",
   "export.date": "Datum",
   "export.description": "Opis",
   "export.merchant": "Trgovac",

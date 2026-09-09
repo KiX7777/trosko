@@ -59,7 +59,7 @@ function RouteLoading() {
         <aside className="route-loading__sidebar">
           <div className="route-loading__brand">
             <span className="route-loading__mark">
-              <Icon name="trend" size={17} />
+              <img src="/icons/icon-192.svg" alt="" aria-hidden="true" />
             </span>
             <strong>Troško</strong>
           </div>
