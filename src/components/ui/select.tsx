@@ -96,8 +96,6 @@ export function AppSelect({
       isSearchable={isSearchable}
       isClearable={isClearable}
       formatOptionLabel={formatOptionLabel}
-      menuPortalTarget={typeof document === 'undefined' ? undefined : document.body}
-      menuPosition="fixed"
       inputId={inputId}
       aria-invalid={invalid}
       aria-describedby={describedBy}

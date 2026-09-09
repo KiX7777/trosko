@@ -260,7 +260,7 @@ export function AnalyticsPage() {
         {(data?.topMerchants ?? []).map((merchant, index) => (
           <div className="merchant__row" key={merchant.merchant}>
             <span className="merchant__rank">0{index + 1}</span>
-            <span>
+            <span className="merchant__copy">
               <strong>{merchant.merchant}</strong>
               <small>{t('analytics.transactionCount', { count: merchant.count })}</small>
             </span>

@@ -2746,6 +2746,7 @@ tbody tr:hover {
 }
 .merchant__row {
   gap: var(--size-13);
+  min-width: 0;
 }
 .merchant__rank {
   width: var(--size-25);
@@ -2754,7 +2755,9 @@ tbody tr:hover {
 }
 .merchant__value {
   display: flex;
-  min-width: var(--size-130);
+  width: clamp(var(--size-85), 28%, var(--size-130));
+  min-width: var(--size-85);
+  flex: 0 1 clamp(var(--size-85), 28%, var(--size-130));
   flex-direction: column;
   align-items: flex-end;
   gap: var(--size-6);
@@ -2763,7 +2766,7 @@ tbody tr:hover {
   font-size: var(--space-3);
 }
 .merchant__progress {
-  width: var(--size-110);
+  width: min(100%, var(--size-110));
   height: var(--space-1);
 }
 .merchant__progress i {
@@ -3633,6 +3636,14 @@ tbody tr:hover {
   .merchant-card {
     grid-column: auto;
   }
+  .merchant-card .section__title-row > div,
+  .merchant__copy {
+    min-width: 0;
+  }
+  .merchant-card .section__title-row p,
+  .merchant__copy strong {
+    overflow-wrap: anywhere;
+  }
   .account-summary,
   .recurring-overview {
     grid-template-columns: 1fr;
@@ -3734,6 +3745,10 @@ tbody tr:hover {
     min-width: 0;
     padding-inline: var(--space-2);
   }
+  /* Mobile browsers zoom focused inputs smaller than 16px. */
+  .app-select__input {
+    font-size: 16px !important;
+  }
   .form__grid--two {
     grid-template-columns: 1fr;
   }
@@ -3779,6 +3794,32 @@ tbody tr:hover {
     right: var(--space-3);
     bottom: calc(var(--space-17) + var(--space-3));
     width: calc(100vw - var(--space-6));
+  }
+}
+@media (max-width: 380px) {
+  .merchant__row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    row-gap: var(--size-6);
+  }
+  .merchant__copy {
+    flex: 1 1 calc(100% - var(--size-25) - var(--size-13));
+  }
+  .merchant__value {
+    width: calc(100% - var(--size-25) - var(--size-13));
+    min-width: 0;
+    margin-left: calc(var(--size-25) + var(--size-13));
+    flex-basis: calc(100% - var(--size-25) - var(--size-13));
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .merchant__value strong {
+    text-align: left;
+  }
+  .merchant__progress {
+    width: 100%;
   }
 }
 .form__field .field__currency {
