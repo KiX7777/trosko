@@ -99,6 +99,7 @@
   --size-9: calc(var(--unit) * 2.25);
   --size-10: calc(var(--unit) * 2.5);
   --size-11: calc(var(--unit) * 2.75);
+  --size-12: calc(var(--unit) * 3);
   --size-13: calc(var(--unit) * 3.25);
   --size-14: calc(var(--unit) * 3.5);
   --size-15: calc(var(--unit) * 3.75);
@@ -2401,6 +2402,281 @@ tbody tr:hover {
 .table__empty span {
   font-size: var(--size-11);
 }
+.transactions-mobile-summary,
+.transactions-mobile-list,
+.transactions-mobile-actions,
+.transactions-mobile-load-more {
+  display: none;
+}
+.transactions-mobile-summary {
+  border-radius: var(--space-5);
+  background: var(--shell-panel);
+}
+.transactions-mobile-summary__header,
+.transactions-mobile-summary__metrics,
+.transactions-mobile-day__header,
+.transactions-mobile-card,
+.transactions-mobile-card__heading,
+.transactions-mobile-card__meta,
+.transactions-mobile-card__labels {
+  display: flex;
+  align-items: center;
+}
+.transactions-mobile-summary__header {
+  justify-content: space-between;
+  gap: var(--space-3);
+  color: var(--shell-secondary);
+  font-size: var(--size-13);
+  font-weight: 700;
+}
+.transactions-mobile-summary__header > span,
+.transactions-mobile-summary__header > strong {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-7);
+}
+.transactions-mobile-summary__header i {
+  width: var(--size-7);
+  height: var(--size-7);
+  display: inline-block;
+  border-radius: var(--radius-pill);
+  background: var(--shell-primary);
+  box-shadow: 0 0 0 var(--size-3) var(--overlay-primary-faint);
+}
+.transactions-mobile-summary__header strong {
+  color: var(--shell-primary);
+  font-size: var(--size-12);
+  white-space: nowrap;
+}
+.transactions-mobile-summary__metrics {
+  gap: 0;
+  margin-top: var(--space-4);
+}
+.transactions-mobile-summary__metrics > div {
+  min-width: 0;
+  flex: 1;
+  padding: 0 var(--space-3);
+  border-left: var(--size-1) solid var(--shell-border);
+}
+.transactions-mobile-summary__metrics > div:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+.transactions-mobile-summary__metrics span,
+.transactions-mobile-day__header {
+  color: var(--shell-secondary);
+  font-size: var(--size-11);
+  font-weight: 700;
+}
+.transactions-mobile-summary__metrics strong {
+  display: block;
+  margin-top: var(--size-2);
+  font-size: var(--size-19);
+  font-weight: 750;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+}
+.transactions-mobile-summary .is-positive,
+.transactions-mobile-day__header .is-positive,
+.transactions-mobile-card__amount .is-positive {
+  color: var(--shell-income);
+}
+.transactions-mobile-summary .is-negative {
+  color: var(--shell-expense);
+}
+.transactions-mobile-list {
+  flex-direction: column;
+  gap: var(--space-6);
+}
+.transactions-mobile-day {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.transactions-mobile-day__header {
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--size-25);
+  font-size: var(--size-13);
+}
+.transactions-mobile-day__header span {
+  font-size: var(--size-12);
+  white-space: nowrap;
+}
+.transactions-mobile-day__header .is-negative {
+  color: var(--shell-secondary);
+}
+.transactions-mobile-day__items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.transactions-mobile-card {
+  position: relative;
+  min-width: 0;
+  align-items: flex-start;
+  gap: var(--space-3-5);
+  padding: var(--space-5);
+  border: var(--size-1) solid transparent;
+  border-radius: var(--space-5);
+  color: var(--shell-text);
+  background: var(--shell-panel);
+  box-shadow: 0 var(--size-1) var(--space-5) var(--shadow-card);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    border-color var(--duration-fast) var(--ease-standard),
+    background var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard);
+}
+.transactions-mobile-card.is-active {
+  border-color: var(--shell-primary);
+  background:
+    linear-gradient(135deg, var(--overlay-primary-faint), transparent 65%),
+    var(--shell-panel);
+  box-shadow: 0 0 0 var(--size-2) var(--overlay-primary-faint), 0 var(--size-1) var(--space-5) var(--shadow-card);
+}
+.transactions-mobile-card:focus-visible {
+  outline: var(--size-2) solid var(--shell-primary);
+  outline-offset: var(--size-2);
+}
+.transactions-mobile-card__icon {
+  width: var(--size-42);
+  height: var(--size-42);
+  margin-top: var(--size-2);
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: var(--radius-pill);
+}
+.transactions-mobile-card__body {
+  min-width: 0;
+  flex: 1;
+  padding-right: var(--space-1);
+}
+.transactions-mobile-card__heading {
+  min-width: 0;
+  gap: var(--size-6);
+}
+.transactions-mobile-card__heading strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--shell-text);
+  font-size: var(--size-17);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+.transactions-mobile-card__heading > .icon {
+  flex: 0 0 auto;
+  color: var(--shell-primary);
+}
+.transactions-mobile-card__meta {
+  min-width: 0;
+  gap: var(--size-6);
+  margin-top: var(--size-3);
+  overflow: hidden;
+  color: var(--shell-secondary);
+  font-size: var(--size-13);
+  white-space: nowrap;
+}
+.transactions-mobile-card__meta span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.transactions-mobile-card__meta span:nth-child(2) {
+  flex: 0 0 auto;
+  overflow: visible;
+}
+.transactions-mobile-card__labels {
+  gap: var(--size-5);
+  flex-wrap: wrap;
+  margin-top: var(--size-6);
+}
+.transactions-mobile-card__labels .status {
+  min-height: var(--size-23);
+  padding: 0 var(--size-7);
+  border: 0;
+  border-radius: var(--size-5);
+  color: var(--shell-secondary);
+  background: var(--shell-panel-2);
+  font-size: var(--size-11);
+  font-weight: 700;
+}
+.transactions-mobile-card__amount {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--size-3);
+  padding-top: var(--size-2);
+  text-align: right;
+}
+.transactions-mobile-card__amount strong {
+  color: var(--color-lavender);
+  font-size: var(--size-19);
+  font-weight: 750;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+}
+.transactions-mobile-card__amount span {
+  color: var(--shell-secondary);
+  font-size: var(--size-12);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.transactions-mobile-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-12) var(--space-5);
+  color: var(--shell-muted);
+  text-align: center;
+}
+.transactions-mobile-empty strong {
+  color: var(--shell-text);
+  font-size: var(--size-13);
+}
+.transactions-mobile-empty span {
+  font-size: var(--size-11);
+}
+.transactions-mobile-actions {
+  align-items: center;
+  gap: var(--space-2);
+}
+.transactions-mobile-actions__name {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: var(--shell-text);
+  font-size: var(--size-11);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.transactions-mobile-actions__close {
+  width: var(--size-38);
+  height: var(--size-38);
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  color: var(--shell-secondary);
+  background: var(--shell-panel-2);
+}
+.transactions-mobile-actions__close:hover,
+.transactions-mobile-actions__close:focus-visible {
+  color: var(--shell-text);
+  background: var(--shell-panel-2);
+}
+.transactions-mobile-load-more {
+  width: 100%;
+  justify-content: center;
+}
 .recurring-overview {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -3620,6 +3896,61 @@ tbody tr:hover {
   }
   .filters > .button {
     justify-content: center;
+  }
+  .transactions-mobile-summary,
+  .transactions-mobile-list {
+    display: flex;
+  }
+  .transactions-mobile-summary {
+    flex-direction: column;
+    padding: var(--space-5);
+  }
+  .transactions-mobile-list {
+    margin-top: var(--space-1);
+  }
+  .transactions-page > .transactions-mobile-summary {
+    order: 1;
+  }
+  .transactions-page > .filters {
+    order: 2;
+  }
+  .transactions-page > .shortcuts {
+    order: 3;
+  }
+  .transactions-page > .transactions-mobile-list {
+    order: 4;
+  }
+  .transactions-page > .transactions-mobile-load-more {
+    display: inline-flex;
+    order: 5;
+  }
+  .transactions-mobile-actions {
+    position: fixed;
+    right: var(--space-4);
+    bottom: calc(var(--space-17) + var(--space-3) + env(safe-area-inset-bottom));
+    left: var(--space-4);
+    z-index: 14;
+    display: flex;
+    min-height: var(--size-54);
+    padding: var(--space-2);
+    border: var(--size-1) solid var(--border-primary-soft);
+    border-radius: var(--space-4);
+    background: var(--shell-panel);
+    box-shadow: 0 var(--space-3) var(--space-8) var(--shadow-navigation);
+    backdrop-filter: blur(var(--space-4));
+  }
+  .transactions-mobile-actions .button {
+    min-height: var(--size-38);
+    padding-inline: var(--size-9);
+  }
+  .transactions-page .card--table {
+    display: none;
+  }
+  .transactions-page .page__heading {
+    display: none;
+  }
+  .transactions-page {
+    gap: var(--space-5);
   }
   .analytics__tabs {
     margin-right: var(--space-negative-16);

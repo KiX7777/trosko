@@ -8,15 +8,17 @@ export function Page({
   title,
   description,
   action,
+  className = '',
   children,
 }: PropsWithChildren<{
   eyebrow?: string
   title: string
   description?: string
   action?: ReactNode
+  className?: string
 }>) {
   return (
-    <div className="page">
+    <div className={`page ${className}`.trim()}>
       <div className="page__heading">
         <div>
           {eyebrow && <span className="eyebrow">{eyebrow}</span>}

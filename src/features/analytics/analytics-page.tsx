@@ -278,7 +278,6 @@ export function AnalyticsPage() {
     <Page
       eyebrow={t('page.analytics')}
       title={t('analytics.title')}
-      description={t('analytics.description')}
       action={
         <button
           className="button--date-range"

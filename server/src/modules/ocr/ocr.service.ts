@@ -25,7 +25,7 @@ export class OcrService implements OnModuleDestroy {
   private readonly logger = new Logger(OcrService.name)
   private workerPromise?: Promise<Worker>
 
-  async parseReceipt(input: OcrRequest, file?: UploadedFile): Promise<OcrResult> {
+  async parseReceipt(input: OcrRequest = {}, file?: UploadedFile): Promise<OcrResult> {
     const sourceFile = file?.originalname ?? input.fileName
     try {
       if (file) {

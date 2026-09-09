@@ -87,11 +87,11 @@ export function AppShell() {
         <div className="sidebar__scroll">
           <nav className="sidebar__nav">
             {primaryNav.map((item) => (
-              <NavItem key={item.to} item={item} />
+              <NavItem key={item.to} item={item} onClick={() => setSidebarOpen(false)} />
             ))}
             <span className="sidebar__caption">{t('nav.manage')}</span>
             {secondaryNav.map((item) => (
-              <NavItem key={item.to} item={item} />
+              <NavItem key={item.to} item={item} onClick={() => setSidebarOpen(false)} />
             ))}
           </nav>
         </div>
@@ -197,9 +197,11 @@ export function AppShell() {
 function NavItem({
   item,
   mobile = false,
+  onClick,
 }: {
   item: { to: string; key: Parameters<typeof t>[0]; icon: string }
   mobile?: boolean
+  onClick?: () => void
 }) {
   return (
     <NavLink
@@ -207,6 +209,7 @@ function NavItem({
         `${mobile ? 'mobile-nav__item' : 'sidebar__link'} ${isActive ? 'is-active' : ''}`
       }
       to={item.to}
+      onClick={onClick}
     >
       <Icon name={item.icon} size={18} />
       <span>{mobile && item.key === 'nav.dashboard' ? t('nav.home') : t(item.key)}</span>

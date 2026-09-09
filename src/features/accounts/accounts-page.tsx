@@ -141,7 +141,6 @@ export function AccountsPage() {
     <Page
       eyebrow={t('page.accounts')}
       title={t('accounts.title')}
-      description={t('accounts.description')}
       action={
         <Button variant="primary" onClick={openCreate}>
           <Icon name="plus" size={17} /> {t('accounts.new')}

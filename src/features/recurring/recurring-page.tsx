@@ -102,7 +102,6 @@ export function RecurringPage() {
     <Page
       eyebrow={t('page.recurring')}
       title={t('recurring.title')}
-      description={t('recurring.description')}
       action={
         <Button variant="primary" onClick={openNewRecurring}>
           <Icon name="plus" size={17} /> {t('recurring.new')}

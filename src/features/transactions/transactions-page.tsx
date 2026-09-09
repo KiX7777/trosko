@@ -1,4 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { format, isToday, isYesterday, parseISO } from 'date-fns'
+import { hr } from 'date-fns/locale'
 import {
   flexRender,
   getCoreRowModel,
@@ -31,10 +33,29 @@ import { t } from '../../lib/i18n'
 import { CategoryBadge } from '../../components/ui/category-badge'
 import { formatCategoryOption } from '../../components/ui/category-options'
 
+function formatMobileDate(date: string) {
+  const parsed = parseISO(`${date}T12:00:00`)
+  const formatted = format(parsed, 'dd. MMMM yyyy.', { locale: hr })
+  const dateWithCapitalizedMonth = formatted.replace(/\. (\p{L})/u, (_, letter: string) => {
+    return `. ${letter.toLocaleUpperCase('hr-HR')}`
+  })
+
+  if (isToday(parsed)) return `Danas, ${dateWithCapitalizedMonth}`
+  if (isYesterday(parsed)) return `Jučer, ${dateWithCapitalizedMonth}`
+  return dateWithCapitalizedMonth
+}
+
+function formatMobileTime(value: string) {
+  return format(parseISO(value), 'HH:mm')
+}
+
 export function TransactionsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [sorting, setSorting] = useState<SortingState>([{ id: 'transactionDate', desc: true }])
   const [selected, setSelected] = useState<Record<string, boolean>>({})
+  const [activeTransactionId, setActiveTransactionId] = useState<string | null>(null)
+  const [mobileVisibleCount, setMobileVisibleCount] = useState(10)
+  const [deleteTarget, setDeleteTarget] = useState<{ ids: string[]; name: string } | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [filterDraft, setFilterDraft] = useState({
     dateFrom: '',
@@ -59,6 +80,7 @@ export function TransactionsPage() {
   const dateTo = searchParams.get('dateTo') ?? ''
   const amountMin = searchParams.get('amountMin') ?? ''
   const amountMax = searchParams.get('amountMax') ?? ''
+  const filterSignature = searchParams.toString()
   const filters: TransactionFilters = {
     search: search || undefined,
     types: type === 'all' ? undefined : [type],
@@ -81,6 +103,8 @@ export function TransactionsPage() {
   const deleteMutation = useDeleteTransactionMutation({
     onSuccess: () => {
       setSelected({})
+      setActiveTransactionId(null)
+      setDeleteTarget(null)
       toast.success(t('transactions.deleted'))
     },
   })
@@ -239,10 +263,53 @@ export function TransactionsPage() {
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   })
+  const mobileRows = table.getRowModel().rows
+  const mobileVisibleRows = mobileRows.slice(0, mobileVisibleCount)
+  const mobileGroups = mobileVisibleRows.reduce(
+    (groups, row) => {
+      const date = row.original.transactionDate
+      const group = groups.find((candidate) => candidate.date === date)
+      if (group) group.rows.push(row)
+      else groups.push({ date, rows: [row] })
+      return groups
+    },
+    [] as Array<{ date: string; rows: typeof mobileRows }>,
+  )
+  const mobileSummary = useMemo(() => {
+    const items = transactions.data ?? []
+    const expenses = items
+      .filter((transaction) => transaction.type === 'expense')
+      .reduce((total, transaction) => total + transaction.amountBase, 0)
+    const income = items
+      .filter((transaction) => transaction.type === 'income')
+      .reduce((total, transaction) => total + transaction.amountBase, 0)
+
+    return {
+      count: items.length,
+      expenses,
+      income,
+      net: income - expenses,
+      currency: items[0]?.currency ?? 'EUR',
+    }
+  }, [transactions.data])
   const selectedIds = Object.keys(selected)
     .filter((key) => selected[key])
     .map((index) => (transactions.data ?? [])[Number(index)]?.id)
     .filter(Boolean) as string[]
+  const activeTransaction = activeTransactionId
+    ? (transactions.data?.find((transaction) => transaction.id === activeTransactionId) ?? null)
+    : null
+
+  useEffect(() => {
+    setMobileVisibleCount(10)
+    setActiveTransactionId(null)
+    setDeleteTarget(null)
+  }, [filterSignature])
+
+  function requestDelete(ids: string[], name: string) {
+    setActiveTransactionId(null)
+    setDeleteTarget({ ids, name })
+  }
 
   function setType(nextType: string) {
     const next = new URLSearchParams(searchParams)
@@ -309,9 +376,9 @@ export function TransactionsPage() {
 
   return (
     <Page
+      className="transactions-page"
       eyebrow={t('page.ledger')}
       title={t('transactions.title')}
-      description={t('transactions.description')}
       action={
         <Button variant="primary" onClick={() => openQuickAdd('expense')}>
           <Icon name="plus" size={17} /> {t('transactions.new')}
@@ -522,11 +589,253 @@ export function TransactionsPage() {
           <span>{t('transactions.selected', { count: selectedIds.length })}</span>
           <Button
             variant="danger"
-            onClick={() => selectedIds.forEach((id) => deleteMutation.mutate(id))}
+            onClick={() =>
+              requestDelete(
+                selectedIds,
+                selectedIds.length === 1
+                  ? (transactions.data?.find((transaction) => transaction.id === selectedIds[0])
+                      ?.description ?? t('transactions.title'))
+                  : t('transactions.selected', { count: selectedIds.length }),
+              )
+            }
           >
             <Icon name="trash" size={15} /> {t('transactions.delete')}
           </Button>
         </div>
+      )}
+      <AppModal
+        isOpen={deleteTarget !== null}
+        onRequestClose={() => setDeleteTarget(null)}
+        eyebrow={t('transactions.delete')}
+        title={t('transactions.deleteTitle')}
+        width={440}
+      >
+        <div className="confirm-modal">
+          <p>
+            {deleteTarget
+              ? deleteTarget.ids.length > 1
+                ? t('transactions.deleteMultipleDescription', {
+                    count: deleteTarget.ids.length,
+                  })
+                : t('transactions.deleteDescription', { name: deleteTarget.name })
+              : ''}
+          </p>
+          <div className="modal__actions">
+            <Button type="button" variant="ghost" onClick={() => setDeleteTarget(null)}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              disabled={deleteMutation.isPending}
+              onClick={() => deleteTarget?.ids.forEach((id) => deleteMutation.mutate(id))}
+            >
+              {t('transactions.delete')}
+            </Button>
+          </div>
+        </div>
+      </AppModal>
+      <section className="transactions-mobile-summary" aria-label={t('transactions.mobileSummary')}>
+        <div className="transactions-mobile-summary__header">
+          <span>
+            <i aria-hidden="true" />
+            {t('transactions.mobileSummary')}
+          </span>
+          <strong>{t('transactions.mobileCount', { count: mobileSummary.count })}</strong>
+        </div>
+        <div className="transactions-mobile-summary__metrics">
+          <div>
+            <span>{t('common.expenses')}</span>
+            <strong className="is-negative">
+              -{formatCurrency(mobileSummary.expenses, mobileSummary.currency)}
+            </strong>
+          </div>
+          <div>
+            <span>{t('common.income')}</span>
+            <strong className="is-positive">
+              +{formatCurrency(mobileSummary.income, mobileSummary.currency)}
+            </strong>
+          </div>
+          <div>
+            <span>{t('common.net')}</span>
+            <strong className={mobileSummary.net >= 0 ? 'is-positive' : 'is-negative'}>
+              {mobileSummary.net >= 0 ? '+' : '-'}
+              {formatCurrency(Math.abs(mobileSummary.net), mobileSummary.currency)}
+            </strong>
+          </div>
+        </div>
+      </section>
+      <div className="transactions-mobile-list">
+        {mobileGroups.length ? (
+          mobileGroups.map((group) => {
+            const dayTotal = group.rows.reduce((total, row) => {
+              if (row.original.type === 'income') return total + row.original.amountBase
+              if (row.original.type === 'expense') return total - row.original.amountBase
+              return total
+            }, 0)
+
+            return (
+              <section className="transactions-mobile-day" key={group.date}>
+                <div className="transactions-mobile-day__header">
+                  <strong>{formatMobileDate(group.date)}</strong>
+                  <span className={dayTotal >= 0 ? 'is-positive' : 'is-negative'}>
+                    {dayTotal >= 0 ? '+' : '-'}
+                    {formatCurrency(Math.abs(dayTotal), mobileSummary.currency)}
+                  </span>
+                </div>
+                <div className="transactions-mobile-day__items">
+                  {group.rows.map((row) => {
+                    const transaction = row.original
+                    const category = transaction.categoryId
+                      ? categoryMap.get(transaction.categoryId)
+                      : undefined
+                    const account = accountMap.get(transaction.accountId) ?? t('common.noAccount')
+                    const amountPrefix =
+                      transaction.type === 'income'
+                        ? '+'
+                        : transaction.type === 'expense'
+                          ? '-'
+                          : ''
+
+                    return (
+                      <article
+                        className={`transactions-mobile-card ${activeTransactionId === transaction.id ? 'is-active' : ''}`}
+                        key={transaction.id}
+                        role="button"
+                        tabIndex={0}
+                        aria-pressed={activeTransactionId === transaction.id}
+                        onClick={() =>
+                          setActiveTransactionId((currentId) =>
+                            currentId === transaction.id ? null : transaction.id,
+                          )
+                        }
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault()
+                            setActiveTransactionId((currentId) =>
+                              currentId === transaction.id ? null : transaction.id,
+                            )
+                          }
+                        }}
+                      >
+                        <span
+                          className={`transactions-mobile-card__icon transaction-glyph--${transaction.type}`}
+                        >
+                          <Icon
+                            name={
+                              transaction.type === 'income'
+                                ? 'arrow-down-right'
+                                : transaction.type === 'transfer'
+                                  ? 'arrow-left-right'
+                                  : 'shopping-cart'
+                            }
+                            size={19}
+                          />
+                        </span>
+                        <div className="transactions-mobile-card__body">
+                          <div className="transactions-mobile-card__heading">
+                            <strong>{transaction.description}</strong>
+                            {transaction.receiptId && <Icon name="receipt" size={16} />}
+                          </div>
+                          <div className="transactions-mobile-card__meta">
+                            <span>{category?.name ?? t('common.noCategory')}</span>
+                            <span aria-hidden="true">•</span>
+                            <span>{account}</span>
+                          </div>
+                          {transaction.labelIds.length > 0 && (
+                            <div className="transactions-mobile-card__labels">
+                              {transaction.labelIds.map((labelId) => (
+                                <StatusPill key={labelId} tone="indigo">
+                                  {`#${labelMap.get(labelId)?.name ?? t('transactions.labelFallback')}`}
+                                </StatusPill>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div className="transactions-mobile-card__amount">
+                          <strong
+                            className={
+                              transaction.type === 'income'
+                                ? 'is-positive'
+                                : transaction.type === 'expense'
+                                  ? 'is-negative'
+                                  : ''
+                            }
+                          >
+                            {amountPrefix}
+                            {formatCurrency(transaction.amountBase, transaction.currency)}
+                          </strong>
+                          <span>{formatMobileTime(transaction.createdAt)}</span>
+                        </div>
+                      </article>
+                    )
+                  })}
+                </div>
+              </section>
+            )
+          })
+        ) : (
+          <div className="transactions-mobile-empty">
+            <Icon name="receipt" size={24} />
+            <strong>{t('transactions.emptyTitle')}</strong>
+            <span>{t('transactions.emptyDescription')}</span>
+          </div>
+        )}
+      </div>
+      {activeTransaction && (
+        <div
+          className="transactions-mobile-actions"
+          aria-label={t('transactions.mobileActions', { name: activeTransaction.description })}
+        >
+          <span className="transactions-mobile-actions__name">{activeTransaction.description}</span>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              const transferAccountId =
+                activeTransaction.type === 'transfer'
+                  ? transactions.data?.find(
+                      (candidate) =>
+                        candidate.id !== activeTransaction.id &&
+                        ((activeTransaction.transferGroupId &&
+                          candidate.transferGroupId === activeTransaction.transferGroupId) ||
+                          candidate.transferGroupId === activeTransaction.id ||
+                          activeTransaction.transferGroupId === candidate.id),
+                    )?.accountId
+                  : undefined
+              openEditTransaction(activeTransaction, transferAccountId)
+              setActiveTransactionId(null)
+            }}
+          >
+            <Icon name="pencil" size={15} /> {t('transactions.mobileEdit')}
+          </Button>
+          <Button
+            variant="danger"
+            disabled={deleteMutation.isPending}
+            onClick={() => requestDelete([activeTransaction.id], activeTransaction.description)}
+          >
+            <Icon name="trash" size={15} /> {t('transactions.delete')}
+          </Button>
+          <button
+            className="transactions-mobile-actions__close"
+            type="button"
+            aria-label={t('transactions.mobileCloseActions')}
+            onClick={() => setActiveTransactionId(null)}
+          >
+            <Icon name="x" size={17} />
+          </button>
+        </div>
+      )}
+      {mobileVisibleRows.length < mobileRows.length && (
+        <Button
+          className="transactions-mobile-load-more"
+          variant="secondary"
+          onClick={() => setMobileVisibleCount((count) => count + 10)}
+        >
+          {t('transactions.mobileLoadMore', {
+            count: Math.min(10, mobileRows.length - mobileVisibleRows.length),
+          })}
+          <Icon name="chevron-down" size={16} />
+        </Button>
       )}
       <div className="card card--table">
         <div className="table__meta">

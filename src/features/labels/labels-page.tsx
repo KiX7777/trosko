@@ -38,7 +38,6 @@ export function LabelsPage() {
     <Page
       eyebrow={t('page.taxonomy')}
       title={t('labels.title')}
-      description={t('labels.description')}
       action={
         <Button variant="primary" onClick={() => setOpen(true)}>
           <Icon name="plus" size={17} /> {t('labels.new')}
