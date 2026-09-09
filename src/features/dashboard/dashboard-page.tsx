@@ -194,6 +194,7 @@ export function DashboardPage() {
               <div className="breakdown__line" key={item.categoryId}>
                 <CategoryBadge category={item} size="small" />
                 <strong>{formatCurrency(item.amount)}</strong>
+                <strong>{item.name}</strong>
               </div>
             ))}
           </div>

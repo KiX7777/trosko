@@ -289,7 +289,7 @@ export function ExpenseBreakdownRailChart({
             id: 'expense-breakdown-rail',
             x: 'percentage',
             y: 'group',
-            color: 'categoryId',
+            color: 'name',
             key: 'categoryId',
             layout: stack(),
             motion: { transition: { type: 'tween', duration: 650, easing: 'ease-out' } },
@@ -301,7 +301,7 @@ export function ExpenseBreakdownRailChart({
         },
         guides: false,
         color: {
-          domain: rows.map((item) => item.categoryId),
+          domain: rows.map((item) => item.name),
           range: rows.map((item) => item.color),
         },
         tooltip: {
@@ -354,7 +354,7 @@ export function ExpenseDistributionChart({
               radialArc(slices, {
                 innerRadius: ({ radius }) => radius * 0.62,
                 cornerRadius: 4,
-                color: 'categoryId',
+                color: 'name',
                 key: 'categoryId',
                 motion: { transition: { type: 'tween', duration: 850, easing: 'ease-out' } },
               }),
@@ -371,7 +371,7 @@ export function ExpenseDistributionChart({
         },
         guides: false,
         color: {
-          domain: data.map((item) => item.categoryId),
+          domain: data.map((item) => item.name),
           range: data.map((item) => item.color),
         },
         tooltip: {
