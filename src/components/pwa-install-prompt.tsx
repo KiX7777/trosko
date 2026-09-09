@@ -16,15 +16,32 @@ function isRunningStandalone() {
   )
 }
 
+function isIosSafari() {
+  const userAgent = navigator.userAgent
+  const isIos =
+    /iPad|iPhone|iPod/.test(userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  const isOtherIosBrowser = /CriOS|FxiOS|EdgiOS|OPiOS/.test(userAgent)
+
+  return isIos && /Safari/.test(userAgent) && !isOtherIosBrowser
+}
+
 export function PwaInstallPrompt() {
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null)
+  const [isIosInstall, setIsIosInstall] = useState(false)
   const [isVisible, setIsVisible] = useState(false)
 
   useEffect(() => {
     if (isRunningStandalone()) return
 
+    if (isIosSafari()) {
+      setIsIosInstall(true)
+      setIsVisible(true)
+    }
+
     function handleBeforeInstallPrompt(event: Event) {
       event.preventDefault()
+      setIsIosInstall(false)
       setInstallEvent(event as BeforeInstallPromptEvent)
       setIsVisible(true)
     }
@@ -43,7 +60,36 @@ export function PwaInstallPrompt() {
     }
   }, [])
 
-  if (!isVisible || !installEvent) return null
+  if (!isVisible || (!installEvent && !isIosInstall)) return null
+
+  if (isIosInstall) {
+    return (
+      <aside
+        className="pwa-install-prompt pwa-install-prompt--ios"
+        role="status"
+        aria-live="polite"
+      >
+        <div className="pwa-install-prompt__icon">
+          <Icon name="share" size={19} />
+        </div>
+        <div className="pwa-install-prompt__copy">
+          <strong>{t('pwa.iosTitle')}</strong>
+          <p>{t('pwa.iosDescription')}</p>
+          <ol className="pwa-install-prompt__steps">
+            <li>{t('pwa.iosStepShare')}</li>
+            <li>{t('pwa.iosStepHome')}</li>
+          </ol>
+        </div>
+        <button
+          type="button"
+          className="pwa-install-prompt__dismiss pwa-install-prompt__dismiss--ios"
+          onClick={() => setIsVisible(false)}
+        >
+          {t('common.close')}
+        </button>
+      </aside>
+    )
+  }
 
   async function handleInstall() {
     if (!installEvent) return

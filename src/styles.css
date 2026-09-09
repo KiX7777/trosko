@@ -3505,6 +3505,20 @@ tbody tr:hover {
   font-size: var(--size-11);
   line-height: 1.4;
 }
+.pwa-install-prompt__steps {
+  margin: var(--space-3) 0 0 var(--space-4);
+  color: var(--shell-secondary);
+  font-size: var(--size-11);
+  line-height: 1.45;
+}
+.pwa-install-prompt__steps li + li {
+  margin-top: var(--space-2);
+}
+.pwa-install-prompt__dismiss--ios {
+  grid-column: 2;
+  justify-self: start;
+  padding-left: 0;
+}
 .pwa-install-prompt__actions {
   grid-column: 2;
   display: flex;
