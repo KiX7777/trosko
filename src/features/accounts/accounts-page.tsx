@@ -1,16 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useRef, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'react-toastify'
 import { z } from 'zod'
 import {
-  archiveAccount,
-  createAccount,
-  getAccounts,
-  updateAccount,
-  updateAccountBalanceManually,
-} from '../../lib/repository'
+  useAccountsQuery,
+  useArchiveAccountMutation,
+  useCreateAccountMutation,
+  useUpdateAccountBalanceMutation,
+  useUpdateAccountMutation,
+} from '../../hooks/use-account-queries'
 import { formatCurrency } from '../../lib/format'
 import { Page } from '../../components/ui/page'
 import { Button } from '../../components/ui/button'
@@ -54,8 +53,7 @@ export function AccountsPage() {
   const [deleteAccount, setDeleteAccount] = useState<Account | null>(null)
   const [menuAccountId, setMenuAccountId] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
-  const queryClient = useQueryClient()
-  const accounts = useQuery({ queryKey: ['accounts'], queryFn: () => getAccounts() })
+  const accounts = useAccountsQuery()
   const form = useForm<AccountFormInput, unknown, AccountFormOutput>({
     resolver: zodResolver(accountSchema),
     mode: 'onBlur',
@@ -78,44 +76,31 @@ export function AccountsPage() {
     return () => document.removeEventListener('pointerdown', handlePointerDown)
   }, [menuAccountId])
 
-  const refreshAccounts = () => {
-    void queryClient.invalidateQueries({ queryKey: ['accounts'] })
-    void queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-  }
-  const createMutation = useMutation({
-    mutationFn: (values: AccountFormOutput) => createAccount(values),
+  const createMutation = useCreateAccountMutation({
     onSuccess: () => {
-      refreshAccounts()
       setAccountModal(null)
       form.reset(accountDefaults)
       toast.success(t('accounts.added'))
     },
     onError: () => toast.error(t('accounts.error')),
   })
-  const editMutation = useMutation({
-    mutationFn: (values: AccountFormOutput & { id: string }) => updateAccount(values),
+  const editMutation = useUpdateAccountMutation({
     onSuccess: () => {
-      refreshAccounts()
       setAccountModal(null)
       setSelectedAccount(null)
       toast.success(t('accounts.updated'))
     },
     onError: () => toast.error(t('accounts.error')),
   })
-  const balanceMutation = useMutation({
-    mutationFn: ({ accountId, balance }: { accountId: string; balance: number }) =>
-      updateAccountBalanceManually(accountId, balance),
+  const balanceMutation = useUpdateAccountBalanceMutation({
     onSuccess: () => {
-      refreshAccounts()
       setBalanceAccount(null)
       toast.success(t('accounts.balanceUpdated'))
     },
     onError: () => toast.error(t('accounts.error')),
   })
-  const archiveMutation = useMutation({
-    mutationFn: archiveAccount,
+  const archiveMutation = useArchiveAccountMutation({
     onSuccess: () => {
-      refreshAccounts()
       setDeleteAccount(null)
       toast.success(t('accounts.deleted'))
     },

@@ -3,8 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useUIStore } from '../stores/ui-store'
 import { Icon } from './ui/icon'
 import { Button } from './ui/button'
-import { useQuery } from '@tanstack/react-query'
-import { getProfile } from '../lib/repository'
+import { useProfileQuery } from '../hooks/use-profile-queries'
 import { t } from '../lib/i18n'
 import { supabase } from '../lib/supabase'
 
@@ -36,7 +35,7 @@ export function AppShell() {
   const navigate = useNavigate()
   const openQuickAdd = useUIStore((state) => state.openQuickAdd)
   const current = [...primaryNav, ...secondaryNav].find((item) => location.pathname === item.to)
-  const profile = useQuery({ queryKey: ['profile'], queryFn: getProfile })
+  const profile = useProfileQuery()
   const displayName = profile.data?.displayName || profile.data?.email || t('common.user')
   const initials = displayName
     .split(/\s+/)

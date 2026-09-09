@@ -1,10 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'react-toastify'
 import { z } from 'zod'
-import { createCategory, deleteCategory, getCategories, updateCategory } from '../../lib/repository'
+import {
+  useCategoriesQuery,
+  useCreateCategoryMutation,
+  useDeleteCategoryMutation,
+  useUpdateCategoryMutation,
+} from '../../hooks/use-category-queries'
 import { Page } from '../../components/ui/page'
 import { Button } from '../../components/ui/button'
 import { Icon } from '../../components/ui/icon'
@@ -38,8 +42,7 @@ export function CategoriesPage() {
   const [deleteCategoryTarget, setDeleteCategoryTarget] = useState<Category | null>(null)
   const [menuCategoryId, setMenuCategoryId] = useState<string | null>(null)
   const menuRef = useRef<HTMLDivElement>(null)
-  const categories = useQuery({ queryKey: ['categories'], queryFn: getCategories })
-  const client = useQueryClient()
+  const categories = useCategoriesQuery()
   const form = useForm<CategoryFormInput, unknown, CategoryFormOutput>({
     resolver: zodResolver(schema),
     mode: 'onBlur',
@@ -55,16 +58,8 @@ export function CategoriesPage() {
     return () => document.removeEventListener('pointerdown', handlePointerDown)
   }, [menuCategoryId])
 
-  const refreshCategories = () => {
-    void client.invalidateQueries({ queryKey: ['categories'] })
-    void client.invalidateQueries({ queryKey: ['dashboard'] })
-    void client.invalidateQueries({ queryKey: ['transactions'] })
-    void client.invalidateQueries({ queryKey: ['recurring'] })
-  }
-  const createMutation = useMutation({
-    mutationFn: createCategory,
+  const createMutation = useCreateCategoryMutation({
     onSuccess: () => {
-      refreshCategories()
       setCategoryModal(null)
       form.reset({ type: 'expense', icon: 'sparkles', color: '#6bd8cb', parentId: '' })
       toast.success(t('categories.new'))
@@ -73,20 +68,16 @@ export function CategoriesPage() {
       toast.error(t('categories.error'))
     },
   })
-  const editMutation = useMutation({
-    mutationFn: updateCategory,
+  const editMutation = useUpdateCategoryMutation({
     onSuccess: () => {
-      refreshCategories()
       setCategoryModal(null)
       setSelectedCategory(null)
       toast.success(t('categories.updated'))
     },
     onError: () => toast.error(t('categories.error')),
   })
-  const deleteMutation = useMutation({
-    mutationFn: deleteCategory,
+  const deleteMutation = useDeleteCategoryMutation({
     onSuccess: () => {
-      refreshCategories()
       setDeleteCategoryTarget(null)
       toast.success(t('categories.deleted'))
     },

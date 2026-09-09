@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { endOfMonth, format, startOfMonth, subMonths } from 'date-fns'
 import { hr } from 'date-fns/locale'
 import { DayPicker, type DateRange } from 'react-day-picker'
 import 'react-day-picker/style.css'
-import { getDashboardSummary, getTransactions } from '../../lib/repository'
+import { useAnalyticsQueries } from '../../hooks/use-dashboard-queries'
 import { formatCurrency } from '../../lib/format'
 import { Page } from '../../components/ui/page'
 import { MetricCard } from '../../components/ui/metric-card'
@@ -90,23 +89,13 @@ export function AnalyticsPage() {
   const expenseMonthStart = format(startOfMonth(expenseMonthDate), 'yyyy-MM-dd')
   const expenseMonthEnd = format(endOfMonth(expenseMonthDate), 'yyyy-MM-dd')
   const isCompactDatePicker = useCompactDatePicker()
-  const summary = useQuery({
-    queryKey: ['analytics', toDateValue(dateRange.from), toDateValue(dateRange.to)],
-    queryFn: () =>
-      getDashboardSummary({
-        dateFrom: toDateValue(dateRange.from),
-        dateTo: toDateValue(dateRange.to),
-      }),
-  })
-  const dailyExpenseTransactions = useQuery({
-    queryKey: ['analytics', 'daily-expenses', expenseMonth],
-    queryFn: () =>
-      getTransactions({
-        types: ['expense'],
-        dateFrom: expenseMonthStart,
-        dateTo: expenseMonthEnd,
-      }),
-  })
+  const { summary, dailyExpenseTransactions } = useAnalyticsQueries(
+    toDateValue(dateRange.from),
+    toDateValue(dateRange.to),
+    expenseMonth,
+    expenseMonthStart,
+    expenseMonthEnd,
+  )
   const data = summary.data
   const expenseMonthOptions = useMemo<SelectOption[]>(
     () =>

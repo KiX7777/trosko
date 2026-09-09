@@ -1,10 +1,10 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'react-toastify'
 import { z } from 'zod'
-import { createLabel, getLabels, getTransactions } from '../../lib/repository'
+import { useCreateLabelMutation, useLabelsQuery } from '../../hooks/use-label-queries'
+import { useAllTransactionsQuery } from '../../hooks/use-transaction-queries'
 import { Page } from '../../components/ui/page'
 import { Button } from '../../components/ui/button'
 import { Icon } from '../../components/ui/icon'
@@ -19,19 +19,16 @@ const schema = z.object({
 
 export function LabelsPage() {
   const [open, setOpen] = useState(false)
-  const labels = useQuery({ queryKey: ['labels'], queryFn: getLabels })
-  const transactions = useQuery({ queryKey: ['transactions'], queryFn: () => getTransactions() })
-  const client = useQueryClient()
+  const labels = useLabelsQuery()
+  const transactions = useAllTransactionsQuery()
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     mode: 'onBlur',
     reValidateMode: 'onChange',
     defaultValues: { color: '#6bd8cb' },
   })
-  const mutation = useMutation({
-    mutationFn: createLabel,
+  const mutation = useCreateLabelMutation({
     onSuccess: () => {
-      void client.invalidateQueries({ queryKey: ['labels'] })
       setOpen(false)
       form.reset({ color: '#6bd8cb' })
       toast.success(t('labels.new'))

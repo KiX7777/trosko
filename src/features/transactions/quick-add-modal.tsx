@@ -1,16 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'react-toastify'
 import { z } from 'zod'
-import {
-  createTransaction,
-  getAccounts,
-  getCategories,
-  getLabels,
-  updateTransaction,
-} from '../../lib/repository'
+import { useAccountsQuery } from '../../hooks/use-account-queries'
+import { useCategoriesQuery } from '../../hooks/use-category-queries'
+import { useLabelsQuery } from '../../hooks/use-label-queries'
+import { useSaveTransactionMutation } from '../../hooks/use-transaction-queries'
 import { todayIso } from '../../lib/format'
 import { useUIStore } from '../../stores/ui-store'
 import { AppModal } from '../../components/ui/modal'
@@ -52,10 +48,9 @@ type FormOutput = z.output<typeof schema>
 
 export function QuickAddModal() {
   const { quickAddOpen, quickAddType, editingTransaction, closeQuickAdd } = useUIStore()
-  const queryClient = useQueryClient()
-  const accountsQuery = useQuery({ queryKey: ['accounts'], queryFn: () => getAccounts() })
-  const categoriesQuery = useQuery({ queryKey: ['categories'], queryFn: getCategories })
-  const labelsQuery = useQuery({ queryKey: ['labels'], queryFn: getLabels })
+  const accountsQuery = useAccountsQuery()
+  const categoriesQuery = useCategoriesQuery()
+  const labelsQuery = useLabelsQuery()
   const transaction = editingTransaction?.transaction
   const isEditing = Boolean(transaction)
   const form = useForm<FormInput, unknown, FormOutput>({
@@ -95,22 +90,8 @@ export function QuickAddModal() {
     })
   }, [editingTransaction, form, quickAddOpen, quickAddType, transaction])
   const type = form.watch('type')
-  const mutation = useMutation({
-    mutationFn: ({ labelId, ...values }: FormOutput) =>
-      transaction
-        ? updateTransaction({
-            ...values,
-            id: transaction.id,
-            currency: transaction.currency,
-            labelIds: labelId ? [labelId] : [],
-            notes: transaction.notes,
-            recurringTransactionId: transaction.recurringTransactionId,
-          })
-        : createTransaction({ ...values, currency: 'EUR', labelIds: labelId ? [labelId] : [] }),
+  const mutation = useSaveTransactionMutation(transaction, {
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['transactions'] })
-      void queryClient.invalidateQueries({ queryKey: ['dashboard'] })
-      void queryClient.invalidateQueries({ queryKey: ['accounts'] })
       closeQuickAdd()
       form.reset({
         type: 'expense',

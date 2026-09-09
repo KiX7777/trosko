@@ -1,16 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { toast } from 'react-toastify'
 import { z } from 'zod'
-import {
-  createRecurring,
-  getAccounts,
-  getCategories,
-  getRecurring,
-  updateRecurring,
-} from '../../lib/repository'
+import { useAccountsQuery } from '../../hooks/use-account-queries'
+import { useCategoriesQuery } from '../../hooks/use-category-queries'
+import { useRecurringQuery, useSaveRecurringMutation } from '../../hooks/use-recurring-queries'
 import { formatCurrency, formatDate } from '../../lib/format'
 import { Page } from '../../components/ui/page'
 import { Button } from '../../components/ui/button'
@@ -59,37 +54,18 @@ const defaultFormValues = {
 export function RecurringPage() {
   const [open, setOpen] = useState(false)
   const [editingRecurring, setEditingRecurring] = useState<RecurringTransaction | null>(null)
-  const recurring = useQuery({ queryKey: ['recurring'], queryFn: getRecurring })
-  const accounts = useQuery({ queryKey: ['accounts'], queryFn: () => getAccounts() })
-  const categories = useQuery({ queryKey: ['categories'], queryFn: getCategories })
+  const recurring = useRecurringQuery()
+  const accounts = useAccountsQuery()
+  const categories = useCategoriesQuery()
   const categoryMap = new Map((categories.data ?? []).map((category) => [category.id, category]))
-  const client = useQueryClient()
   const form = useForm<RecurringFormInput, unknown, RecurringFormOutput>({
     resolver: zodResolver(schema),
     mode: 'onBlur',
     reValidateMode: 'onChange',
     defaultValues: defaultFormValues,
   })
-  const mutation = useMutation({
-    mutationFn: ({
-      item,
-      values,
-    }: {
-      item: RecurringTransaction | null
-      values: RecurringFormOutput
-    }) =>
-      item
-        ? updateRecurring({
-            id: item.id,
-            ...values,
-            currency: item.currency,
-          })
-        : createRecurring({
-            ...values,
-            currency: 'EUR',
-          }),
-    onSuccess: (_data, variables) => {
-      void client.invalidateQueries({ queryKey: ['recurring'] })
+  const mutation = useSaveRecurringMutation({
+    onSuccess: (variables) => {
       setOpen(false)
       setEditingRecurring(null)
       form.reset(defaultFormValues)

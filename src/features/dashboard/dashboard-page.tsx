@@ -1,15 +1,8 @@
 import { useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { endOfMonth, format, startOfMonth, subMonths } from 'date-fns'
 import { hr } from 'date-fns/locale'
-import {
-  getAccounts,
-  getDashboardSummary,
-  getProfile,
-  getRecurring,
-  getTransactions,
-} from '../../lib/repository'
+import { useDashboardQueries } from '../../hooks/use-dashboard-queries'
 import { formatCurrency, formatRelativeDate } from '../../lib/format'
 import { Icon } from '../../components/ui/icon'
 import { CategoryBadge } from '../../components/ui/category-badge'
@@ -32,26 +25,8 @@ export function DashboardPage() {
   const expenseMonthDate = new Date(`${expenseMonth}-01T12:00:00`)
   const expenseMonthStart = format(startOfMonth(expenseMonthDate), 'yyyy-MM-dd')
   const expenseMonthEnd = format(endOfMonth(expenseMonthDate), 'yyyy-MM-dd')
-  const summary = useQuery({
-    queryKey: ['dashboard', period],
-    queryFn: () => getDashboardSummary(period),
-  })
-  const accounts = useQuery({ queryKey: ['accounts'], queryFn: () => getAccounts() })
-  const transactions = useQuery({
-    queryKey: ['transactions', { limit: 5 }],
-    queryFn: () => getTransactions(),
-  })
-  const dailyExpenseTransactions = useQuery({
-    queryKey: ['transactions', 'daily-expenses', expenseMonth],
-    queryFn: () =>
-      getTransactions({
-        types: ['expense'],
-        dateFrom: expenseMonthStart,
-        dateTo: expenseMonthEnd,
-      }),
-  })
-  const recurring = useQuery({ queryKey: ['recurring'], queryFn: getRecurring })
-  const profile = useQuery({ queryKey: ['profile'], queryFn: getProfile })
+  const { summary, accounts, transactions, dailyExpenseTransactions, recurring, profile } =
+    useDashboardQueries(expenseMonth, expenseMonthStart, expenseMonthEnd, period)
   const data = summary.data
   const monthLabel = new Intl.DateTimeFormat('hr-HR', { month: 'long', year: 'numeric' })
     .format(new Date())

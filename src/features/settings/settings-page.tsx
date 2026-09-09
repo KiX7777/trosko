@@ -1,8 +1,12 @@
 import { useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Papa from 'papaparse'
 import { toast } from 'react-toastify'
-import { getProfile, getTransactions, resetDemoData, updateProfile } from '../../lib/repository'
+import {
+  useProfileQuery,
+  useResetDemoDataMutation,
+  useUpdateProfileMutation,
+} from '../../hooks/use-profile-queries'
+import { useAllTransactionsQuery } from '../../hooks/use-transaction-queries'
 import { useUIStore } from '../../stores/ui-store'
 import { Page } from '../../components/ui/page'
 import { Button } from '../../components/ui/button'
@@ -15,20 +19,15 @@ import { DEFAULT_CURRENCY, SUPPORTED_CURRENCIES } from '../../lib/constants'
 
 export function SettingsPage() {
   const [displayNameError, setDisplayNameError] = useState<string>()
-  const profile = useQuery({ queryKey: ['profile'], queryFn: getProfile })
-  const transactions = useQuery({
-    queryKey: ['transactions'],
-    queryFn: () => getTransactions(),
-  })
-  const client = useQueryClient()
+  const profile = useProfileQuery()
+  const transactions = useAllTransactionsQuery()
   const { theme, setTheme } = useUIStore()
-  const mutation = useMutation({
-    mutationFn: updateProfile,
+  const mutation = useUpdateProfileMutation({
     onSuccess: () => {
-      void client.invalidateQueries({ queryKey: ['profile'] })
       toast.success(t('settings.saved'))
     },
   })
+  const resetMutation = useResetDemoDataMutation()
   const displayName = profile.data?.displayName ?? profile.data?.email ?? t('common.user')
   return (
     <Page
@@ -172,9 +171,9 @@ export function SettingsPage() {
           <Button
             variant="danger"
             onClick={() => {
-              void resetDemoData()
-              void client.invalidateQueries()
-              toast.success(t('settings.demoResetDone'))
+              resetMutation.mutate(undefined, {
+                onSuccess: () => toast.success(t('settings.demoResetDone')),
+              })
             }}
           >
             <Icon name="trash" size={16} /> {t('settings.demoReset')}

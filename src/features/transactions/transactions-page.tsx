@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   flexRender,
   getCoreRowModel,
@@ -10,15 +9,15 @@ import {
 } from '@tanstack/react-table'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'react-toastify'
+import { useAccountsQuery } from '../../hooks/use-account-queries'
+import { useCategoriesQuery } from '../../hooks/use-category-queries'
+import { useLabelsQuery } from '../../hooks/use-label-queries'
 import {
-  createSavedView,
-  deleteTransaction,
-  getAccounts,
-  getCategories,
-  getLabels,
-  getSavedViews,
-  getTransactions,
-} from '../../lib/repository'
+  useCreateSavedViewMutation,
+  useDeleteTransactionMutation,
+  useSavedViewsQuery,
+  useTransactionsQuery,
+} from '../../hooks/use-transaction-queries'
 import type { Transaction, TransactionFilters, TransactionType } from '../../types/domain'
 import { formatCurrency, formatDate } from '../../lib/format'
 import { Page } from '../../components/ui/page'
@@ -73,32 +72,20 @@ export function TransactionsPage() {
     recurring: recurring === null ? undefined : recurring === 'true',
     hasReceipt: hasReceipt === null ? undefined : hasReceipt === 'true',
   }
-  const transactions = useQuery({
-    queryKey: ['transactions', filters],
-    queryFn: () => getTransactions(filters),
-  })
-  const accounts = useQuery({ queryKey: ['accounts'], queryFn: () => getAccounts() })
-  const categories = useQuery({ queryKey: ['categories'], queryFn: getCategories })
-  const labels = useQuery({ queryKey: ['labels'], queryFn: getLabels })
-  const savedViews = useQuery({
-    queryKey: ['saved-views'],
-    queryFn: () => getSavedViews('transactions'),
-  })
-  const queryClient = useQueryClient()
+  const transactions = useTransactionsQuery(filters)
+  const accounts = useAccountsQuery()
+  const categories = useCategoriesQuery()
+  const labels = useLabelsQuery()
+  const savedViews = useSavedViewsQuery('transactions')
   const openEditTransaction = useUIStore((state) => state.openEditTransaction)
-  const deleteMutation = useMutation({
-    mutationFn: deleteTransaction,
+  const deleteMutation = useDeleteTransactionMutation({
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['transactions'] })
-      void queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       setSelected({})
       toast.success(t('transactions.deleted'))
     },
   })
-  const saveViewMutation = useMutation({
-    mutationFn: (name: string) => createSavedView(name, filters),
+  const saveViewMutation = useCreateSavedViewMutation(filters, {
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ['saved-views'] })
       toast.success(t('transactions.saveViewDone'))
     },
   })
