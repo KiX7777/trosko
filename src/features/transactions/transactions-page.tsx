@@ -1090,27 +1090,7 @@ export function TransactionsPage() {
           </button>
         </div>
       )}
-      {transactions.hasNextPage && (
-        <Button
-          className="transactions-mobile-load-more"
-          variant="secondary"
-          disabled={transactions.isFetchingNextPage}
-          onClick={() => void transactions.fetchNextPage()}
-        >
-          {t('transactions.mobileLoadMore', {
-            count: Math.min(
-              TRANSACTION_PAGE_SIZE,
-              Math.max(0, transactionTotal - transactionItems.length),
-            ),
-          })}
-          <Icon name="chevron-down" size={16} />
-        </Button>
-      )}
-      {transactions.isFetchingNextPage && (
-        <div className="transactions-mobile-load-more-status" role="status">
-          {t('transactions.loadingMore')}
-        </div>
-      )}
+
       <div className="card card--table">
         <div className="table__meta">
           <span>{t('transactions.results', { count: transactionTotal })}</span>

@@ -195,7 +195,14 @@ export function AppShell() {
         {primaryNav.slice(3, 4).map((item) => (
           <NavItem key={item.to} item={item} mobile />
         ))}
-        <NavLink className="mobile-nav__item" to="/settings" viewTransition>
+        <NavLink
+          className="mobile-nav__item"
+          to="/settings"
+          viewTransition
+          onClick={(event) => {
+            if (location.pathname === '/settings') event.preventDefault()
+          }}
+        >
           <Icon name="more" size={18} />
           <span>{t('nav.more')}</span>
         </NavLink>
@@ -216,6 +223,8 @@ function NavItem({
   mobile?: boolean
   onClick?: () => void
 }) {
+  const location = useLocation()
+
   return (
     <NavLink
       className={({ isActive }) =>
@@ -223,7 +232,12 @@ function NavItem({
       }
       to={item.to}
       viewTransition
-      onClick={onClick}
+      onClick={(event) => {
+        if (location.pathname === item.to) {
+          event.preventDefault()
+        }
+        onClick?.()
+      }}
     >
       <Icon name={item.icon} size={18} />
       <span>{mobile && item.key === 'nav.dashboard' ? t('nav.home') : t(item.key)}</span>
