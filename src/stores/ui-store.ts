@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { localStorageService } from '../lib/local-storage'
 import type { Transaction } from '../types/domain'
 
 type Theme = 'system' | 'light' | 'dark'
@@ -14,7 +15,11 @@ interface UIState {
   closeQuickAdd: () => void
 }
 
-const initialTheme = (localStorage.getItem('trosko-theme') as Theme | null) ?? 'dark'
+const storedTheme = localStorageService.get<unknown>('trosko-theme', null)
+const initialTheme: Theme =
+  storedTheme === 'system' || storedTheme === 'light' || storedTheme === 'dark'
+    ? storedTheme
+    : 'dark'
 
 export const useUIStore = create<UIState>((set) => ({
   theme: initialTheme,
@@ -22,7 +27,7 @@ export const useUIStore = create<UIState>((set) => ({
   quickAddType: 'expense',
   editingTransaction: null,
   setTheme: (theme) => {
-    localStorage.setItem('trosko-theme', theme)
+    localStorageService.set('trosko-theme', theme)
     set({ theme })
   },
   openQuickAdd: (quickAddType = 'expense') =>

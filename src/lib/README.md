@@ -7,6 +7,7 @@ This directory contains code that is shared across features but is not itself a 
 - `supabase.ts` creates a client only when the two Vite Supabase variables are present.
 - `query-client.ts` configures the shared TanStack Query client.
 - `format.ts` centralizes Croatian date, currency, and number display.
+- `local-storage.ts` provides safe JSON read, write, and removal for browser-only UI preferences.
 - `i18n.ts` loads `hr.json` and provides the typed `t()` helper.
 - `ocr-api.ts` calls the browser-to-server OCR boundary; `use-receipt-queries.ts` orchestrates file persistence, OCR status updates, and query invalidation.
 - `constants.ts` contains shared option lists and stable application values.

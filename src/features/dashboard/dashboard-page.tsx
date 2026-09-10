@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { endOfMonth, format, startOfMonth, subMonths } from 'date-fns'
 import { hr } from 'date-fns/locale'
@@ -15,15 +15,21 @@ import {
 } from '../../components/ui/tanstack-charts'
 import { AppSelect, type SelectOption } from '../../components/ui/select'
 import { t } from '../../lib/i18n'
+import { useDashboardStore } from '../../stores/dashboard-store'
 import type { Period } from '../../types/domain'
 
 export function DashboardPage() {
-  const [period, setPeriod] = useState<Period>('1M')
-  const [isBalanceFilterOpen, setIsBalanceFilterOpen] = useState(false)
-  const [selectedBalanceAccountIds, setSelectedBalanceAccountIds] = useState<string[] | null>(null)
+  const period = useDashboardStore((state) => state.period)
+  const expenseMonth = useDashboardStore((state) => state.expenseMonth)
+  const isBalanceFilterOpen = useDashboardStore((state) => state.isBalanceFilterOpen)
+  const selectedBalanceAccountIds = useDashboardStore((state) => state.selectedBalanceAccountIds)
+  const setPeriod = useDashboardStore((state) => state.setPeriod)
+  const setExpenseMonth = useDashboardStore((state) => state.setExpenseMonth)
+  const toggleBalanceFilter = useDashboardStore((state) => state.toggleBalanceFilter)
+  const closeBalanceFilter = useDashboardStore((state) => state.closeBalanceFilter)
+  const selectAllBalanceAccounts = useDashboardStore((state) => state.selectAllBalanceAccounts)
+  const toggleBalanceAccount = useDashboardStore((state) => state.toggleBalanceAccount)
   const balanceFilterRef = useRef<HTMLDivElement>(null)
-  const currentMonth = format(new Date(), 'yyyy-MM')
-  const [expenseMonth, setExpenseMonth] = useState(currentMonth)
   const expenseMonthDate = new Date(`${expenseMonth}-01T12:00:00`)
   const expenseMonthStart = format(startOfMonth(expenseMonthDate), 'yyyy-MM-dd')
   const expenseMonthEnd = format(endOfMonth(expenseMonthDate), 'yyyy-MM-dd')
@@ -34,6 +40,10 @@ export function DashboardPage() {
     () => (accounts.data ?? []).filter((account) => !account.archivedAt),
     [accounts.data],
   )
+  const activeBalanceAccountIds = useMemo(
+    () => activeAccounts.map((account) => account.id),
+    [activeAccounts],
+  )
   const selectedBalance = activeAccounts.filter(
     (account) =>
       selectedBalanceAccountIds === null || selectedBalanceAccountIds.includes(account.id),
@@ -43,10 +53,10 @@ export function DashboardPage() {
   useEffect(() => {
     if (!isBalanceFilterOpen) return
     const handlePointerDown = (event: PointerEvent) => {
-      if (!balanceFilterRef.current?.contains(event.target as Node)) setIsBalanceFilterOpen(false)
+      if (!balanceFilterRef.current?.contains(event.target as Node)) closeBalanceFilter()
     }
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsBalanceFilterOpen(false)
+      if (event.key === 'Escape') closeBalanceFilter()
     }
     document.addEventListener('pointerdown', handlePointerDown)
     document.addEventListener('keydown', handleKeyDown)
@@ -54,16 +64,8 @@ export function DashboardPage() {
       document.removeEventListener('pointerdown', handlePointerDown)
       document.removeEventListener('keydown', handleKeyDown)
     }
-  }, [isBalanceFilterOpen])
+  }, [closeBalanceFilter, isBalanceFilterOpen])
 
-  const toggleBalanceAccount = (accountId: string) => {
-    setSelectedBalanceAccountIds((current) => {
-      const selectedIds = current ?? activeAccounts.map((account) => account.id)
-      return selectedIds.includes(accountId)
-        ? selectedIds.filter((id) => id !== accountId)
-        : [...selectedIds, accountId]
-    })
-  }
   const monthLabel = new Intl.DateTimeFormat('hr-HR', { month: 'long', year: 'numeric' })
     .format(new Date())
     .toUpperCase()
@@ -121,7 +123,7 @@ export function DashboardPage() {
                 aria-expanded={isBalanceFilterOpen}
                 aria-haspopup="dialog"
                 aria-controls="balance-account-filter"
-                onClick={() => setIsBalanceFilterOpen((open) => !open)}
+                onClick={toggleBalanceFilter}
               >
                 <Icon name="sliders" size={15} />
                 {selectedBalance.length === activeAccounts.length
@@ -139,7 +141,7 @@ export function DashboardPage() {
                     <strong>{t('dashboard.balanceAccounts')}</strong>
                     <button
                       type="button"
-                      onClick={() => setSelectedBalanceAccountIds(null)}
+                      onClick={selectAllBalanceAccounts}
                       disabled={selectedBalance.length === activeAccounts.length}
                     >
                       {t('aria.selectAll')}
@@ -155,7 +157,9 @@ export function DashboardPage() {
                           <input
                             type="checkbox"
                             checked={isChecked}
-                            onChange={() => toggleBalanceAccount(account.id)}
+                            onChange={() =>
+                              toggleBalanceAccount(account.id, activeBalanceAccountIds)
+                            }
                           />
                           <span>
                             <strong>{account.name}</strong>
