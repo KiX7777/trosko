@@ -279,7 +279,7 @@ export function AnalyticsPage() {
           {visibleCategoryBreakdown.map((item) => (
             <div key={item.categoryId}>
               <CategoryBadge category={item} size="small" />
-              <strong>{item.percentage}%</strong>
+              <strong>{item.percentage.toFixed(2)}%</strong>
             </div>
           ))}
         </div>
