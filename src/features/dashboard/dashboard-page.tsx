@@ -244,7 +244,7 @@ export function DashboardPage() {
               <h3>{t('dashboard.cashFlow')}</h3>
               <p>{t('dashboard.cashFlowDescription')}</p>
             </div>
-            <Link className="link" to="/analytics">
+            <Link className="link" to="/analytics" viewTransition>
               {t('dashboard.details')} <Icon name="chevron-right" size={14} />
             </Link>
           </div>
@@ -270,7 +270,7 @@ export function DashboardPage() {
                 {t('common.total')} {formatCurrency(data?.expenses ?? 0)}
               </p>
             </div>
-            <Link className="link" to="/analytics">
+            <Link className="link" to="/analytics" viewTransition>
               {t('dashboard.analytics')} <Icon name="chevron-right" size={14} />
             </Link>
           </div>
@@ -294,13 +294,13 @@ export function DashboardPage() {
               <h3>{t('dashboard.myAccounts')}</h3>
               <p>{t('dashboard.activeAccounts', { count: accounts.data?.length ?? 0 })}</p>
             </div>
-            <Link className="link" to="/accounts">
+            <Link className="link" to="/accounts" viewTransition>
               {t('dashboard.manage')} <Icon name="chevron-right" size={14} />
             </Link>
           </div>
           <div className="accounts__list">
             {(accounts.data ?? []).map((account) => (
-              <Link className="accounts__row" to="/accounts" key={account.id}>
+              <Link className="accounts__row" to="/accounts" key={account.id} viewTransition>
                 <span className="accounts__row-icon" style={{ color: account.color }}>
                   <Icon
                     name={
@@ -332,7 +332,7 @@ export function DashboardPage() {
               <h3>{t('dashboard.upcomingExpenses')}</h3>
               <p>{t('dashboard.upcomingDescription')}</p>
             </div>
-            <Link className="link" to="/recurring">
+            <Link className="link" to="/recurring" viewTransition>
               {t('dashboard.all')} <Icon name="chevron-right" size={14} />
             </Link>
           </div>
@@ -367,7 +367,7 @@ export function DashboardPage() {
             <h3>{t('dashboard.recentTransactions')}</h3>
             <p>{t('dashboard.recentDescription')}</p>
           </div>
-          <Link className="link" to="/transactions">
+          <Link className="link" to="/transactions" viewTransition>
             {t('dashboard.viewAll')} <Icon name="chevron-right" size={14} />
           </Link>
         </div>
@@ -377,6 +377,7 @@ export function DashboardPage() {
               className="recent__row"
               to={`/transactions?search=${encodeURIComponent(transaction.description)}`}
               key={transaction.id}
+              viewTransition
             >
               <span className={`transaction-glyph transaction-glyph--${transaction.type}`}>
                 <Icon

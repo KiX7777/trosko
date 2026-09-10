@@ -1760,6 +1760,39 @@ h3 {
   max-width: var(--size-1240);
   margin: 0 auto;
   padding: var(--space-9);
+  view-transition-name: page-content;
+}
+
+/* Native View Transitions are activated by React Router during navigation. */
+::view-transition-image-pair(page-content) {
+  isolation: auto;
+}
+
+::view-transition-old(page-content),
+::view-transition-new(page-content) {
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(page-content) {
+  animation: page-transition-out 160ms ease-out both;
+}
+
+::view-transition-new(page-content) {
+  animation: page-transition-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes page-transition-out {
+  to {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+}
+
+@keyframes page-transition-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
 }
 .page {
   display: flex;
@@ -4424,6 +4457,11 @@ tbody tr:hover {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(page-content),
+  ::view-transition-new(page-content) {
+    animation-duration: 1ms;
+  }
+
   .modal__overlay,
   .modal__card {
     transition-duration: 1ms;

@@ -40,7 +40,7 @@ export function AuthPage() {
       )
     }
     toast.success(register ? t('auth.accountCreated') : t('auth.welcomeToast'))
-    navigate('/dashboard')
+    navigate('/dashboard', { viewTransition: true })
   }
   return (
     <div className="auth-shell">

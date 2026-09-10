@@ -72,7 +72,7 @@ export function AppShell() {
     } else {
       localStorage.removeItem('trosko-demo-session')
     }
-    navigate('/login', { replace: true })
+    navigate('/login', { replace: true, viewTransition: true })
   }
 
   return (
@@ -182,7 +182,7 @@ export function AppShell() {
         {primaryNav.slice(3, 4).map((item) => (
           <NavItem key={item.to} item={item} mobile />
         ))}
-        <NavLink className="mobile-nav__item" to="/settings">
+        <NavLink className="mobile-nav__item" to="/settings" viewTransition>
           <Icon name="more" size={18} />
           <span>{t('nav.more')}</span>
         </NavLink>
@@ -209,6 +209,7 @@ function NavItem({
         `${mobile ? 'mobile-nav__item' : 'sidebar__link'} ${isActive ? 'is-active' : ''}`
       }
       to={item.to}
+      viewTransition
       onClick={onClick}
     >
       <Icon name={item.icon} size={18} />

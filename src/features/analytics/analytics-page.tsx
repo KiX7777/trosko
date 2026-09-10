@@ -259,7 +259,7 @@ export function AnalyticsPage() {
               ? t('common.all')
               : t('analytics.selectedCategories', { count: selectedCategoryCount })}
           </button>
-          <Link className="link" to="/categories">
+          <Link className="link" to="/categories" viewTransition>
             {t('analytics.editCategories')} <Icon name="chevron-right" size={14} />
           </Link>
         </div>
@@ -396,7 +396,7 @@ export function AnalyticsPage() {
               className={activeTab === tab ? 'is-active' : ''}
               onClick={() => {
                 if (route) {
-                  navigate(route)
+                  navigate(route, { viewTransition: true })
                   return
                 }
                 setActiveTab(tab)
