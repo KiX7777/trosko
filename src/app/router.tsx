@@ -7,8 +7,8 @@ import {
   RouterProvider,
 } from 'react-router-dom'
 import { AppShell } from '../components/app-shell'
-import { Icon } from '../components/ui/icon'
 import { AuthGate } from '../features/auth/auth-gate'
+import { RouteErrorPage } from './error-page'
 
 const AnalyticsPage = lazy(() =>
   import('../features/analytics/analytics-page').then(({ AnalyticsPage }) => ({
@@ -140,7 +140,7 @@ function RouteLoading() {
 
 const router = createBrowserRouter(
   createRoutesFromElements(
-    <Route>
+    <Route errorElement={<RouteErrorPage />}>
       <Route path="/login" element={<AuthPage />} />
       <Route
         path="/"

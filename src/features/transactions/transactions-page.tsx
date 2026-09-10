@@ -20,6 +20,7 @@ import {
   type ColumnDef,
   type SortingState,
 } from '@tanstack/react-table'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { useAccountsQuery } from '../../hooks/use-account-queries'
@@ -73,6 +74,33 @@ function displayDescription(description: string) {
 
 type DateQuickFilter = 'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth'
 
+type MobileVirtualItem =
+  | { kind: 'day'; key: string; date: string; total: number }
+  | { kind: 'transaction'; key: string; transaction: Transaction }
+
+function useMobileTransactionsLayout() {
+  const [isMobile, setIsMobile] = useState(() => {
+    return (
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(max-width: 720px)').matches
+    )
+  })
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
+
+    const mediaQuery = window.matchMedia('(max-width: 720px)')
+    const update = () => setIsMobile(mediaQuery.matches)
+    update()
+    mediaQuery.addEventListener?.('change', update)
+
+    return () => mediaQuery.removeEventListener?.('change', update)
+  }, [])
+
+  return isMobile
+}
+
 function getDateQuickFilterRange(filter: DateQuickFilter, referenceDate = new Date()) {
   const weekOptions = { weekStartsOn: 1 as const }
 
@@ -110,7 +138,9 @@ export function TransactionsPage() {
   const [selected, setSelected] = useState<Record<string, boolean>>({})
   const [activeTransactionId, setActiveTransactionId] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ ids: string[]; name: string } | null>(null)
-  const loadMoreRef = useRef<HTMLDivElement>(null)
+  const desktopTableScrollRef = useRef<HTMLDivElement>(null)
+  const mobileListScrollRef = useRef<HTMLDivElement>(null)
+  const isMobileLayout = useMobileTransactionsLayout()
   const {
     filtersOpen,
     filterDraft,
@@ -327,17 +357,55 @@ export function TransactionsPage() {
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   })
-  const mobileRows = table.getRowModel().rows
-  const mobileGroups = mobileRows.reduce(
-    (groups, row) => {
+  const tableRows = table.getRowModel().rows
+  const mobileVirtualItems = useMemo<MobileVirtualItem[]>(() => {
+    const groups = new Map<string, typeof tableRows>()
+    for (const row of tableRows) {
       const date = row.original.transactionDate
-      const group = groups.find((candidate) => candidate.date === date)
-      if (group) group.rows.push(row)
-      else groups.push({ date, rows: [row] })
-      return groups
-    },
-    [] as Array<{ date: string; rows: typeof mobileRows }>,
-  )
+      const rows = groups.get(date)
+      if (rows) rows.push(row)
+      else groups.set(date, [row])
+    }
+
+    return Array.from(groups).flatMap(([date, rows]) => {
+      const total = rows.reduce((sum, row) => {
+        if (row.original.type === 'income') return sum + row.original.amountBase
+        if (row.original.type === 'expense') return sum - row.original.amountBase
+        return sum
+      }, 0)
+
+      return [
+        { kind: 'day' as const, key: `day-${date}`, date, total },
+        ...rows.map((row) => ({
+          kind: 'transaction' as const,
+          key: row.original.id,
+          transaction: row.original,
+        })),
+      ]
+    })
+  }, [tableRows])
+  const tableRowVirtualizer = useVirtualizer({
+    count: tableRows.length,
+    getScrollElement: () => desktopTableScrollRef.current,
+    estimateSize: () => 54,
+    measureElement: (element) => element.getBoundingClientRect().height,
+    overscan: 10,
+    enabled: !isMobileLayout,
+  })
+  const mobileItemVirtualizer = useVirtualizer({
+    count: mobileVirtualItems.length,
+    getScrollElement: () => mobileListScrollRef.current,
+    estimateSize: (index) => (mobileVirtualItems[index]?.kind === 'day' ? 61 : 96),
+    measureElement: (element) => element.getBoundingClientRect().height,
+    overscan: 8,
+    enabled: isMobileLayout,
+  })
+  const virtualTableRows = tableRowVirtualizer.getVirtualItems()
+  const virtualMobileItems = mobileItemVirtualizer.getVirtualItems()
+  const lastVisibleVirtualItemIndex = isMobileLayout
+    ? (virtualMobileItems.at(-1)?.index ?? -1)
+    : (virtualTableRows.at(-1)?.index ?? -1)
+  const activeVirtualItemCount = isMobileLayout ? mobileVirtualItems.length : tableRows.length
   const mobileSummary = useMemo(() => {
     const items = transactionItems
     const expenses = items
@@ -372,22 +440,28 @@ export function TransactionsPage() {
   useEffect(() => () => resetUIState(), [resetUIState])
 
   useEffect(() => {
-    const sentinel = loadMoreRef.current
     if (
-      !sentinel ||
       !hasNextPage ||
       isFetchingNextPage ||
-      typeof IntersectionObserver === 'undefined'
+      activeVirtualItemCount === 0 ||
+      lastVisibleVirtualItemIndex < activeVirtualItemCount - 8
     ) {
       return
     }
 
-    const observer = new IntersectionObserver((entries) => {
-      if (entries[0]?.isIntersecting) void fetchNextPage()
-    })
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
+    void fetchNextPage()
+  }, [
+    activeVirtualItemCount,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    lastVisibleVirtualItemIndex,
+  ])
+
+  useEffect(() => {
+    desktopTableScrollRef.current?.scrollTo({ top: 0 })
+    mobileListScrollRef.current?.scrollTo({ top: 0 })
+  }, [filterSignature, sorting])
 
   function requestDelete(ids: string[], name: string) {
     setActiveTransactionId(null)
@@ -835,122 +909,134 @@ export function TransactionsPage() {
           </div>
         </div>
       </section>
-      <div className="transactions-mobile-list">
-        {mobileGroups.length ? (
-          mobileGroups.map((group) => {
-            const dayTotal = group.rows.reduce((total, row) => {
-              if (row.original.type === 'income') return total + row.original.amountBase
-              if (row.original.type === 'expense') return total - row.original.amountBase
-              return total
-            }, 0)
+      <div ref={mobileListScrollRef} className="transactions-mobile-list">
+        {isMobileLayout && mobileVirtualItems.length ? (
+          <div
+            className="transactions-mobile-virtual-list"
+            style={{ height: mobileItemVirtualizer.getTotalSize() }}
+          >
+            {virtualMobileItems.map((virtualItem) => {
+              const item = mobileVirtualItems[virtualItem.index]
+              if (!item) return null
 
-            return (
-              <section className="transactions-mobile-day" key={group.date}>
-                <div className="transactions-mobile-day__header">
-                  <strong>{formatMobileDate(group.date)}</strong>
-                  <span className={dayTotal >= 0 ? 'is-positive' : 'is-negative'}>
-                    {dayTotal >= 0 ? '+' : '-'}
-                    {formatCurrency(Math.abs(dayTotal), mobileSummary.currency)}
-                  </span>
-                </div>
-                <div className="transactions-mobile-day__items">
-                  {group.rows.map((row) => {
-                    const transaction = row.original
-                    const category = transaction.categoryId
-                      ? categoryMap.get(transaction.categoryId)
-                      : undefined
-                    const account = accountMap.get(transaction.accountId) ?? t('common.noAccount')
-                    const amountPrefix =
-                      transaction.type === 'income'
-                        ? '+'
-                        : transaction.type === 'expense'
-                          ? '-'
-                          : ''
+              const style = { transform: `translateY(${virtualItem.start}px)` }
 
-                    return (
-                      <article
-                        className={`transactions-mobile-card ${activeTransactionId === transaction.id ? 'is-active' : ''}`}
-                        key={transaction.id}
-                        role="button"
-                        tabIndex={0}
-                        aria-pressed={activeTransactionId === transaction.id}
-                        onClick={() =>
-                          setActiveTransactionId((currentId) =>
-                            currentId === transaction.id ? null : transaction.id,
-                          )
+              if (item.kind === 'day') {
+                return (
+                  <div
+                    ref={mobileItemVirtualizer.measureElement}
+                    data-index={virtualItem.index}
+                    className={`transactions-mobile-virtual-item transactions-mobile-virtual-item--day ${virtualItem.index === 0 ? 'is-first' : ''}`}
+                    key={item.key}
+                    style={style}
+                  >
+                    <div className="transactions-mobile-day__header">
+                      <strong>{formatMobileDate(item.date)}</strong>
+                      <span className={item.total >= 0 ? 'is-positive' : 'is-negative'}>
+                        {item.total >= 0 ? '+' : '-'}
+                        {formatCurrency(Math.abs(item.total), mobileSummary.currency)}
+                      </span>
+                    </div>
+                  </div>
+                )
+              }
+
+              const { transaction } = item
+              const category = transaction.categoryId
+                ? categoryMap.get(transaction.categoryId)
+                : undefined
+              const account = accountMap.get(transaction.accountId) ?? t('common.noAccount')
+              const amountPrefix =
+                transaction.type === 'income' ? '+' : transaction.type === 'expense' ? '-' : ''
+
+              return (
+                <div
+                  ref={mobileItemVirtualizer.measureElement}
+                  data-index={virtualItem.index}
+                  className="transactions-mobile-virtual-item transactions-mobile-virtual-item--transaction"
+                  key={item.key}
+                  style={style}
+                >
+                  <article
+                    className={`transactions-mobile-card ${activeTransactionId === transaction.id ? 'is-active' : ''}`}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={activeTransactionId === transaction.id}
+                    onClick={() =>
+                      setActiveTransactionId((currentId) =>
+                        currentId === transaction.id ? null : transaction.id,
+                      )
+                    }
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        setActiveTransactionId((currentId) =>
+                          currentId === transaction.id ? null : transaction.id,
+                        )
+                      }
+                    }}
+                  >
+                    <span
+                      className={`transactions-mobile-card__icon transaction-glyph--${transaction.type}`}
+                    >
+                      <Icon
+                        name={
+                          transaction.type === 'income'
+                            ? 'arrow-down-right'
+                            : transaction.type === 'transfer'
+                              ? 'arrow-left-right'
+                              : 'shopping-cart'
                         }
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter' || event.key === ' ') {
-                            event.preventDefault()
-                            setActiveTransactionId((currentId) =>
-                              currentId === transaction.id ? null : transaction.id,
-                            )
-                          }
-                        }}
+                        size={19}
+                      />
+                    </span>
+                    <div className="transactions-mobile-card__body">
+                      <div className="transactions-mobile-card__heading">
+                        <strong>{displayDescription(transaction.description)}</strong>
+                        {transaction.receiptId && <Icon name="receipt" size={16} />}
+                      </div>
+                      <div className="transactions-mobile-card__meta">
+                        <span>{category?.name ?? t('common.noCategory')}</span>
+                        <span aria-hidden="true">•</span>
+                        <span>{account}</span>
+                      </div>
+                      {transaction.labelIds.length > 0 && (
+                        <div className="transactions-mobile-card__labels">
+                          {transaction.labelIds.map((labelId) => (
+                            <StatusPill key={labelId} tone="indigo">
+                              {`#${labelMap.get(labelId)?.name ?? t('transactions.labelFallback')}`}
+                            </StatusPill>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <div className="transactions-mobile-card__amount">
+                      <strong
+                        className={
+                          transaction.type === 'income'
+                            ? 'is-positive'
+                            : transaction.type === 'expense'
+                              ? 'is-negative'
+                              : ''
+                        }
                       >
-                        <span
-                          className={`transactions-mobile-card__icon transaction-glyph--${transaction.type}`}
-                        >
-                          <Icon
-                            name={
-                              transaction.type === 'income'
-                                ? 'arrow-down-right'
-                                : transaction.type === 'transfer'
-                                  ? 'arrow-left-right'
-                                  : 'shopping-cart'
-                            }
-                            size={19}
-                          />
-                        </span>
-                        <div className="transactions-mobile-card__body">
-                          <div className="transactions-mobile-card__heading">
-                            <strong>{displayDescription(transaction.description)}</strong>
-                            {transaction.receiptId && <Icon name="receipt" size={16} />}
-                          </div>
-                          <div className="transactions-mobile-card__meta">
-                            <span>{category?.name ?? t('common.noCategory')}</span>
-                            <span aria-hidden="true">•</span>
-                            <span>{account}</span>
-                          </div>
-                          {transaction.labelIds.length > 0 && (
-                            <div className="transactions-mobile-card__labels">
-                              {transaction.labelIds.map((labelId) => (
-                                <StatusPill key={labelId} tone="indigo">
-                                  {`#${labelMap.get(labelId)?.name ?? t('transactions.labelFallback')}`}
-                                </StatusPill>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        <div className="transactions-mobile-card__amount">
-                          <strong
-                            className={
-                              transaction.type === 'income'
-                                ? 'is-positive'
-                                : transaction.type === 'expense'
-                                  ? 'is-negative'
-                                  : ''
-                            }
-                          >
-                            {amountPrefix}
-                            {formatCurrency(transaction.amountBase, transaction.currency)}
-                          </strong>
-                          <span>{formatMobileTime(transaction.createdAt)}</span>
-                        </div>
-                      </article>
-                    )
-                  })}
+                        {amountPrefix}
+                        {formatCurrency(transaction.amountBase, transaction.currency)}
+                      </strong>
+                      <span>{formatMobileTime(transaction.createdAt)}</span>
+                    </div>
+                  </article>
                 </div>
-              </section>
-            )
-          })
-        ) : (
+              )
+            })}
+          </div>
+        ) : !transactions.isLoading ? (
           <div className="transactions-mobile-empty">
             <Icon name="receipt" size={24} />
             <strong>{t('transactions.emptyTitle')}</strong>
             <span>{t('transactions.emptyDescription')}</span>
           </div>
-        )}
+        ) : null}
       </div>
       {activeTransaction && (
         <div
@@ -1030,8 +1116,8 @@ export function TransactionsPage() {
           <span>{t('transactions.results', { count: transactionTotal })}</span>
           <span className="table__muted">{t('transactions.sortHint')}</span>
         </div>
-        <div className="table__scroll">
-          <table>
+        <div ref={desktopTableScrollRef} className="table__scroll table__scroll--virtual">
+          <table className="transactions-table">
             <thead>
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
@@ -1059,7 +1145,13 @@ export function TransactionsPage() {
                 </tr>
               ))}
             </thead>
-            <tbody>
+            <tbody
+              style={
+                !transactions.isLoading && tableRows.length
+                  ? { height: tableRowVirtualizer.getTotalSize() }
+                  : undefined
+              }
+            >
               {transactions.isLoading ? (
                 <tr>
                   <td colSpan={columns.length}>
@@ -1069,16 +1161,28 @@ export function TransactionsPage() {
                     </div>
                   </td>
                 </tr>
-              ) : table.getRowModel().rows.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <tr key={row.id}>
-                    {row.getVisibleCells().map((cell) => (
-                      <td key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                  </tr>
-                ))
+              ) : tableRows.length ? (
+                !isMobileLayout &&
+                virtualTableRows.map((virtualRow) => {
+                  const row = tableRows[virtualRow.index]
+                  if (!row) return null
+
+                  return (
+                    <tr
+                      ref={tableRowVirtualizer.measureElement}
+                      data-index={virtualRow.index}
+                      className="transactions-table__virtual-row"
+                      key={row.id}
+                      style={{ transform: `translateY(${virtualRow.start}px)` }}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <td key={cell.id}>
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
+                    </tr>
+                  )
+                })
               ) : (
                 <tr>
                   <td colSpan={columns.length}>
@@ -1099,7 +1203,6 @@ export function TransactionsPage() {
           {t('transactions.loadingMore')}
         </div>
       )}
-      <div ref={loadMoreRef} className="transactions-load-more-sentinel" aria-hidden="true" />
     </Page>
   )
 }
