@@ -32,6 +32,7 @@ import { useUIStore } from '../../stores/ui-store'
 import { t } from '../../lib/i18n'
 import { CategoryBadge } from '../../components/ui/category-badge'
 import { formatCategoryOption } from '../../components/ui/category-options'
+import { useTransactionsPageUIStore } from './transactions-page-ui-store'
 
 function formatMobileDate(date: string) {
   const parsed = parseISO(`${date}T12:00:00`)
@@ -56,18 +57,22 @@ export function TransactionsPage() {
   const [activeTransactionId, setActiveTransactionId] = useState<string | null>(null)
   const [mobileVisibleCount, setMobileVisibleCount] = useState(10)
   const [deleteTarget, setDeleteTarget] = useState<{ ids: string[]; name: string } | null>(null)
-  const [filtersOpen, setFiltersOpen] = useState(false)
-  const [filterDraft, setFilterDraft] = useState({
-    dateFrom: '',
-    dateTo: '',
-    accountId: '',
-    categoryId: '',
-    labelId: '',
-    amountMin: '',
-    amountMax: '',
-    recurring: '',
-    hasReceipt: '',
-  })
+  const {
+    filtersOpen,
+    filterDraft,
+    saveViewOpen,
+    saveViewName,
+    savedViewsOpen,
+    openFilters: showFilters,
+    closeFilters,
+    updateFilterDraft,
+    openSaveView: showSaveView,
+    closeSaveView,
+    setSaveViewName,
+    toggleSavedViews,
+    closeSavedViews,
+    reset: resetUIState,
+  } = useTransactionsPageUIStore()
   const openQuickAdd = useUIStore((state) => state.openQuickAdd)
   const search = searchParams.get('search') ?? ''
   const type = (searchParams.get('type') as TransactionType | null) ?? 'all'
@@ -110,6 +115,7 @@ export function TransactionsPage() {
   })
   const saveViewMutation = useCreateSavedViewMutation(filters, {
     onSuccess: () => {
+      closeSaveView()
       toast.success(t('transactions.saveViewDone'))
     },
   })
@@ -306,6 +312,8 @@ export function TransactionsPage() {
     setDeleteTarget(null)
   }, [filterSignature])
 
+  useEffect(() => () => resetUIState(), [resetUIState])
+
   function requestDelete(ids: string[], name: string) {
     setActiveTransactionId(null)
     setDeleteTarget({ ids, name })
@@ -319,7 +327,7 @@ export function TransactionsPage() {
   }
 
   function openFilters() {
-    setFilterDraft({
+    showFilters({
       dateFrom,
       dateTo,
       accountId,
@@ -330,7 +338,6 @@ export function TransactionsPage() {
       recurring: recurring ?? '',
       hasReceipt: hasReceipt ?? '',
     })
-    setFiltersOpen(true)
   }
 
   function applyFilters() {
@@ -361,7 +368,37 @@ export function TransactionsPage() {
       if (value) next.set(param, value)
     })
     setSearchParams(next)
-    setFiltersOpen(false)
+    closeFilters()
+  }
+
+  function openSaveView() {
+    showSaveView(
+      t('transactions.viewDefault', {
+        number: savedViews.data?.length ? savedViews.data.length + 1 : 1,
+      }),
+    )
+  }
+
+  function applySavedView(viewFilters: TransactionFilters) {
+    const next = new URLSearchParams()
+    const setFirstValue = (param: string, values?: string[]) => {
+      if (values?.[0]) next.set(param, values[0])
+    }
+
+    if (viewFilters.search) next.set('search', viewFilters.search)
+    setFirstValue('type', viewFilters.types)
+    setFirstValue('account', viewFilters.accounts)
+    setFirstValue('category', viewFilters.categories)
+    setFirstValue('label', viewFilters.labels)
+    if (viewFilters.dateFrom) next.set('dateFrom', viewFilters.dateFrom)
+    if (viewFilters.dateTo) next.set('dateTo', viewFilters.dateTo)
+    if (viewFilters.amountMin !== undefined) next.set('amountMin', String(viewFilters.amountMin))
+    if (viewFilters.amountMax !== undefined) next.set('amountMax', String(viewFilters.amountMax))
+    if (viewFilters.recurring !== undefined) next.set('recurring', String(viewFilters.recurring))
+    if (viewFilters.hasReceipt !== undefined) next.set('hasReceipt', String(viewFilters.hasReceipt))
+
+    setSearchParams(next)
+    closeSavedViews()
   }
 
   function setThisMonth() {
@@ -428,23 +465,73 @@ export function TransactionsPage() {
           {t('transactions.withoutReceipt')}
         </button>
         <button onClick={() => setSearchParams({})}>{t('transactions.reset')}</button>
-        <button
-          onClick={() => {
-            const name = window.prompt(
-              t('transactions.viewName'),
-              t('transactions.viewDefault', {
-                number: savedViews.data?.length ? savedViews.data.length + 1 : 1,
-              }),
-            )
-            if (name?.trim()) saveViewMutation.mutate(name.trim())
-          }}
-        >
-          {t('transactions.saveView')}
-        </button>
+        <button onClick={openSaveView}>{t('transactions.saveView')}</button>
+        {(savedViews.data?.length ?? 0) > 0 && (
+          <div className="saved-view-dropdown">
+            <button
+              type="button"
+              aria-haspopup="menu"
+              aria-expanded={savedViewsOpen}
+              onClick={toggleSavedViews}
+            >
+              <Icon name="filter" size={14} /> {t('transactions.applySavedView')}
+              <Icon name="chevron-down" size={14} />
+            </button>
+            {savedViewsOpen && (
+              <div className="saved-view-dropdown__menu" role="menu">
+                {(savedViews.data ?? []).map((view) => (
+                  <button
+                    key={view.id}
+                    type="button"
+                    role="menuitem"
+                    onClick={() => applySavedView(view.filters)}
+                  >
+                    {view.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
       <AppModal
+        isOpen={saveViewOpen}
+        onRequestClose={closeSaveView}
+        eyebrow={t('transactions.saveViewEyebrow')}
+        title={t('transactions.saveViewTitle')}
+        width={440}
+      >
+        <form
+          className="form__stack"
+          onSubmit={(event) => {
+            event.preventDefault()
+            const name = saveViewName.trim()
+            if (name) saveViewMutation.mutate(name)
+          }}
+        >
+          <label className="form__field" htmlFor="saved-view-name">
+            <span>{t('transactions.viewName')}</span>
+            <input
+              id="saved-view-name"
+              autoFocus
+              required
+              value={saveViewName}
+              onChange={(event) => setSaveViewName(event.target.value)}
+            />
+          </label>
+          <div className="modal__actions">
+            <Button type="button" variant="ghost" onClick={closeSaveView}>
+              {t('common.cancel')}
+            </Button>
+            <Button type="submit" variant="primary" disabled={saveViewMutation.isPending}>
+              {saveViewMutation.isPending ? t('transactions.savingView') : t('common.save')}
+            </Button>
+          </div>
+        </form>
+      </AppModal>
+      <AppModal
         isOpen={filtersOpen}
-        onRequestClose={() => setFiltersOpen(false)}
+        onRequestClose={closeFilters}
         eyebrow={t('transactions.filterEyebrow')}
         title={t('transactions.filterTitle')}
         width={640}
@@ -456,9 +543,7 @@ export function TransactionsPage() {
               <input
                 type="date"
                 value={filterDraft.dateFrom}
-                onChange={(event) =>
-                  setFilterDraft((draft) => ({ ...draft, dateFrom: event.target.value }))
-                }
+                onChange={(event) => updateFilterDraft({ dateFrom: event.target.value })}
               />
             </label>
             <label className="form__field">
@@ -466,9 +551,7 @@ export function TransactionsPage() {
               <input
                 type="date"
                 value={filterDraft.dateTo}
-                onChange={(event) =>
-                  setFilterDraft((draft) => ({ ...draft, dateTo: event.target.value }))
-                }
+                onChange={(event) => updateFilterDraft({ dateTo: event.target.value })}
               />
             </label>
           </div>
@@ -477,9 +560,7 @@ export function TransactionsPage() {
               <span>{t('common.account')}</span>
               <select
                 value={filterDraft.accountId}
-                onChange={(event) =>
-                  setFilterDraft((draft) => ({ ...draft, accountId: event.target.value }))
-                }
+                onChange={(event) => updateFilterDraft({ accountId: event.target.value })}
               >
                 <option value="">{t('common.all')}</option>
                 {(accounts.data ?? []).map((account) => (
@@ -493,7 +574,7 @@ export function TransactionsPage() {
               <span>{t('common.category')}</span>
               <AppSelect
                 value={filterDraft.categoryId}
-                onChange={(value) => setFilterDraft((draft) => ({ ...draft, categoryId: value }))}
+                onChange={(value) => updateFilterDraft({ categoryId: value })}
                 placeholder={t('common.all')}
                 options={(categories.data ?? []).map((category) => ({
                   value: category.id,
@@ -509,9 +590,7 @@ export function TransactionsPage() {
               <span>{t('nav.labels')}</span>
               <select
                 value={filterDraft.labelId}
-                onChange={(event) =>
-                  setFilterDraft((draft) => ({ ...draft, labelId: event.target.value }))
-                }
+                onChange={(event) => updateFilterDraft({ labelId: event.target.value })}
               >
                 <option value="">{t('common.all')}</option>
                 {(labels.data ?? []).map((label) => (
@@ -525,9 +604,7 @@ export function TransactionsPage() {
               <span>{t('transactions.receiptStatus')}</span>
               <select
                 value={filterDraft.hasReceipt}
-                onChange={(event) =>
-                  setFilterDraft((draft) => ({ ...draft, hasReceipt: event.target.value }))
-                }
+                onChange={(event) => updateFilterDraft({ hasReceipt: event.target.value })}
               >
                 <option value="">{t('common.all')}</option>
                 <option value="true">{t('transactions.withReceipt')}</option>
@@ -543,9 +620,7 @@ export function TransactionsPage() {
                 min="0"
                 step="0.01"
                 value={filterDraft.amountMin}
-                onChange={(event) =>
-                  setFilterDraft((draft) => ({ ...draft, amountMin: event.target.value }))
-                }
+                onChange={(event) => updateFilterDraft({ amountMin: event.target.value })}
               />
             </label>
             <label className="form__field">
@@ -555,9 +630,7 @@ export function TransactionsPage() {
                 min="0"
                 step="0.01"
                 value={filterDraft.amountMax}
-                onChange={(event) =>
-                  setFilterDraft((draft) => ({ ...draft, amountMax: event.target.value }))
-                }
+                onChange={(event) => updateFilterDraft({ amountMax: event.target.value })}
               />
             </label>
           </div>
@@ -565,9 +638,7 @@ export function TransactionsPage() {
             <span>{t('transactions.recurringStatus')}</span>
             <select
               value={filterDraft.recurring}
-              onChange={(event) =>
-                setFilterDraft((draft) => ({ ...draft, recurring: event.target.value }))
-              }
+              onChange={(event) => updateFilterDraft({ recurring: event.target.value })}
             >
               <option value="">{t('common.all')}</option>
               <option value="true">{t('transactions.recurring')}</option>
@@ -575,7 +646,7 @@ export function TransactionsPage() {
             </select>
           </label>
           <div className="modal__actions">
-            <Button variant="ghost" onClick={() => setFiltersOpen(false)}>
+            <Button variant="ghost" onClick={closeFilters}>
               {t('common.cancel')}
             </Button>
             <Button variant="primary" onClick={applyFilters}>

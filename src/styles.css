@@ -2301,6 +2301,41 @@ h3 {
   color: var(--shell-primary);
   border-color: var(--border-primary);
 }
+.saved-view-dropdown {
+  position: relative;
+}
+.saved-view-dropdown > button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-5);
+}
+.saved-view-dropdown__menu {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + var(--size-6));
+  left: 0;
+  min-width: max-content;
+  max-width: min(var(--size-280), calc(100vw - var(--space-8)));
+  padding: var(--size-6);
+  border: var(--size-1) solid var(--shell-border);
+  border-radius: var(--space-3);
+  background: var(--shell-panel);
+  box-shadow: 0 var(--space-3-5) var(--space-8) var(--shadow-popover);
+}
+.shortcuts .saved-view-dropdown__menu button {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--size-7);
+  color: var(--shell-text);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.shortcuts .saved-view-dropdown__menu button:hover {
+  background: var(--overlay-primary-muted);
+}
 .bulk-actions {
   display: flex;
   align-items: center;
@@ -2532,9 +2567,10 @@ tbody tr:hover {
 .transactions-mobile-card.is-active {
   border-color: var(--shell-primary);
   background:
-    linear-gradient(135deg, var(--overlay-primary-faint), transparent 65%),
-    var(--shell-panel);
-  box-shadow: 0 0 0 var(--size-2) var(--overlay-primary-faint), 0 var(--size-1) var(--space-5) var(--shadow-card);
+    linear-gradient(135deg, var(--overlay-primary-faint), transparent 65%), var(--shell-panel);
+  box-shadow:
+    0 0 0 var(--size-2) var(--overlay-primary-faint),
+    0 var(--size-1) var(--space-5) var(--shadow-card);
 }
 .transactions-mobile-card:focus-visible {
   outline: var(--size-2) solid var(--shell-primary);
