@@ -163,6 +163,14 @@ export interface DashboardSummary {
     percentage: number
     color: string
   }>
+  accountBreakdown: Array<{
+    accountId: string
+    name: string
+    amount: number
+    percentage: number
+    count: number
+    color: string
+  }>
   topMerchants: Array<{ merchant: string; amount: number; count: number }>
   transactionCount: number
 }

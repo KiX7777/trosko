@@ -14,6 +14,7 @@ import { formatCurrency } from '../../lib/format'
 
 type CashFlowPoint = DashboardSummary['cashFlow'][number]
 type CategoryBreakdown = DashboardSummary['categoryBreakdown'][number]
+type AccountBreakdown = DashboardSummary['accountBreakdown'][number]
 
 type CashFlowSeriesPoint = {
   date: string
@@ -383,6 +384,77 @@ export function ExpenseDistributionChart({
               label: t('common.amount'),
               text: (point) => formatCurrency(point.datum.amount),
             },
+            {
+              field: 'percentage',
+              label: t('analytics.tooltipShare'),
+              text: (point) => formatPercentage(point.datum.percentage),
+            },
+          ],
+        },
+      }),
+    [data, slices],
+  )
+
+  return (
+    <div className="chart__container donut__chart">
+      <Chart renderer={chartMotion} definition={definition} height={176} ariaLabel={ariaLabel} />
+    </div>
+  )
+}
+
+export function AccountExpenseDistributionChart({
+  data,
+  ariaLabel,
+}: {
+  data: readonly AccountBreakdown[]
+  ariaLabel: string
+}) {
+  const slices = useMemo(() => pie(data, { value: 'amount', gapAngle: 0.035 }), [data])
+  const definition = useMemo(
+    () =>
+      defineChart({
+        motion: {
+          transition: { type: 'tween', duration: 850, easing: 'ease-out' },
+        },
+        marks: [
+          polar({
+            id: 'account-expense-distribution',
+            inset: 4,
+            radiusRatio: 0.9,
+            marks: [
+              radialArc(slices, {
+                innerRadius: ({ radius }) => radius * 0.62,
+                cornerRadius: 4,
+                color: 'name',
+                key: 'accountId',
+                motion: { transition: { type: 'tween', duration: 850, easing: 'ease-out' } },
+              }),
+            ],
+            scales: {
+              angle: null,
+              radius: null,
+            },
+          }),
+        ],
+        scales: {
+          x: null,
+          y: null,
+        },
+        guides: false,
+        color: {
+          domain: data.map((item) => item.name),
+          range: data.map((item) => item.color),
+        },
+        tooltip: {
+          use: tooltip,
+          items: [
+            { field: 'name', label: t('common.account') },
+            {
+              field: 'amount',
+              label: t('common.expenses'),
+              text: (point) => formatCurrency(point.datum.amount),
+            },
+            { field: 'count', label: t('analytics.tooltipTransactions') },
             {
               field: 'percentage',
               label: t('analytics.tooltipShare'),

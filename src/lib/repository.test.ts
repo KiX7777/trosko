@@ -186,6 +186,21 @@ describe('categories', () => {
       expect.arrayContaining([expect.objectContaining({ categoryId: 'category-food' })]),
     )
   })
+
+  it('groups expense transactions by account for analytics', async () => {
+    const summary = await getDashboardSummary('1M')
+
+    expect(summary.accountBreakdown).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          accountId: 'account-current',
+          name: 'Tekući račun',
+          amount: 42.5,
+          count: 1,
+        }),
+      ]),
+    )
+  })
 })
 
 describe('recurring auto-log', () => {

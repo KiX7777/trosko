@@ -16,6 +16,7 @@ import { AppSelect, type SelectOption } from '../../components/ui/select'
 import {
   CashFlowChart,
   DailyExpenseChart,
+  AccountExpenseDistributionChart,
   ExpenseDistributionChart,
   MerchantProgressChart,
 } from '../../components/ui/tanstack-charts'
@@ -34,7 +35,6 @@ const tabs = [
 type AnalyticsTab = (typeof tabs)[number]
 
 const tabRoutes: Partial<Record<AnalyticsTab, string>> = {
-  'analytics.tabAccounts': '/accounts',
   'analytics.tabRecurring': '/recurring',
   'analytics.tabLabels': '/labels',
 }
@@ -83,6 +83,9 @@ export function AnalyticsPage() {
   const [filterOpen, setFilterOpen] = useState(false)
   const [draftRange, setDraftRange] = useState<DateRange | undefined>(defaultRange)
   const [dateRange, setDateRange] = useState<DateRange>(defaultRange)
+  const [categoryFilterOpen, setCategoryFilterOpen] = useState(false)
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[] | null>(null)
+  const [draftCategoryIds, setDraftCategoryIds] = useState<string[]>([])
   const currentMonth = format(new Date(), 'yyyy-MM')
   const [expenseMonth, setExpenseMonth] = useState(currentMonth)
   const expenseMonthDate = new Date(`${expenseMonth}-01T12:00:00`)
@@ -112,6 +115,40 @@ export function AnalyticsPage() {
   )
   const expenseMonthLabel =
     expenseMonthOptions.find((option) => option.value === expenseMonth)?.label ?? expenseMonth
+  const categoryBreakdown = data?.categoryBreakdown ?? []
+  const visibleCategoryBreakdown = useMemo(() => {
+    const selectedCategories = categoryBreakdown.filter(
+      (category) =>
+        selectedCategoryIds === null || selectedCategoryIds.includes(category.categoryId),
+    )
+    const total = selectedCategories.reduce((sum, category) => sum + category.amount, 0)
+
+    return selectedCategories.map((category) => ({
+      ...category,
+      percentage: total > 0 ? (category.amount / total) * 100 : 0,
+    }))
+  }, [categoryBreakdown, selectedCategoryIds])
+  const visibleCategoryTotal = visibleCategoryBreakdown.reduce(
+    (sum, category) => sum + category.amount,
+    0,
+  )
+  const selectedCategoryCount =
+    selectedCategoryIds === null ? categoryBreakdown.length : visibleCategoryBreakdown.length
+
+  const openCategoryFilter = () => {
+    setDraftCategoryIds(
+      selectedCategoryIds ?? categoryBreakdown.map((category) => category.categoryId),
+    )
+    setCategoryFilterOpen(true)
+  }
+
+  const toggleDraftCategory = (categoryId: string) => {
+    setDraftCategoryIds((current) =>
+      current.includes(categoryId)
+        ? current.filter((id) => id !== categoryId)
+        : [...current, categoryId],
+    )
+  }
 
   const metrics = (
     <div className="analytics__metrics">
@@ -209,23 +246,37 @@ export function AnalyticsPage() {
           <h3>{t('analytics.expenseDistribution')}</h3>
           <p>{t('analytics.byCategories')}</p>
         </div>
-        <Link className="link" to="/categories">
-          {t('analytics.editCategories')} <Icon name="chevron-right" size={14} />
-        </Link>
+        <div className="analytics__card-actions">
+          <button
+            className="analytics__category-filter"
+            type="button"
+            aria-haspopup="dialog"
+            aria-expanded={categoryFilterOpen}
+            onClick={openCategoryFilter}
+          >
+            <Icon name="sliders" size={15} />
+            {selectedCategoryIds === null
+              ? t('common.all')
+              : t('analytics.selectedCategories', { count: selectedCategoryCount })}
+          </button>
+          <Link className="link" to="/categories">
+            {t('analytics.editCategories')} <Icon name="chevron-right" size={14} />
+          </Link>
+        </div>
       </div>
       <div className="donut__layout">
         <div className="donut__frame">
           <ExpenseDistributionChart
-            data={data?.categoryBreakdown ?? []}
+            data={visibleCategoryBreakdown}
             ariaLabel={t('analytics.expenseDistribution')}
           />
           <div className="donut__center">
-            <strong>{formatCurrency(data?.expenses ?? 0, 'EUR', true)}</strong>
+            <strong>{formatCurrency(visibleCategoryTotal, 'EUR', true)}</strong>
             <small>{t('analytics.total')}</small>
           </div>
         </div>
         <div className="donut__legend">
-          {(data?.categoryBreakdown ?? []).map((item) => (
+          {visibleCategoryBreakdown.map((item) => (
             <div key={item.categoryId}>
               <CategoryBadge category={item} size="small" />
               <strong>{item.percentage}%</strong>
@@ -269,9 +320,45 @@ export function AnalyticsPage() {
     </article>
   )
 
+  const accountsCard = (
+    <article className="card analytics__chart-card">
+      <div className="section__title-row">
+        <div>
+          <h3>{t('analytics.expensesByAccount')}</h3>
+          <p>{t('analytics.accountExpensesDescription')}</p>
+        </div>
+      </div>
+      <div className="donut__layout">
+        <div className="donut__frame">
+          <AccountExpenseDistributionChart
+            data={data?.accountBreakdown ?? []}
+            ariaLabel={t('analytics.expensesByAccount')}
+          />
+          <div className="donut__center">
+            <strong>{formatCurrency(data?.expenses ?? 0, 'EUR', true)}</strong>
+            <small>{t('analytics.total')}</small>
+          </div>
+        </div>
+        <div className="donut__legend">
+          {(data?.accountBreakdown ?? []).map((account) => (
+            <div key={account.accountId}>
+              <span>
+                <i style={{ backgroundColor: account.color }} />
+                {account.name}
+                <small>{t('analytics.transactionCount', { count: account.count })}</small>
+              </span>
+              <strong>{formatCurrency(account.amount)}</strong>
+            </div>
+          ))}
+        </div>
+      </div>
+    </article>
+  )
+
   const isOverview = activeTab === 'analytics.tabOverview'
   const isIncomeExpenses = activeTab === 'analytics.tabIncomeExpenses'
   const isCategories = activeTab === 'analytics.tabCategories'
+  const isAccounts = activeTab === 'analytics.tabAccounts'
   const isCashFlow = activeTab === 'analytics.tabCashFlow'
 
   return (
@@ -344,6 +431,9 @@ export function AnalyticsPage() {
             {merchantsCard}
           </section>
         )}
+        {isAccounts && (
+          <section className="analytics__grid analytics__grid--single">{accountsCard}</section>
+        )}
         {isCashFlow && (
           <section className="analytics__grid analytics__grid--single">{cashFlowCard}</section>
         )}
@@ -383,6 +473,59 @@ export function AnalyticsPage() {
                 if (!draftRange?.from || !draftRange.to) return
                 setDateRange(draftRange)
                 setFilterOpen(false)
+              }}
+            >
+              <Icon name="filter" size={15} /> {t('analytics.applyFilter')}
+            </Button>
+          </div>
+        </div>
+      </AppModal>
+      <AppModal
+        isOpen={categoryFilterOpen}
+        onRequestClose={() => setCategoryFilterOpen(false)}
+        eyebrow={t('analytics.categoryFilterEyebrow')}
+        title={t('analytics.categoryFilterTitle')}
+        width={460}
+      >
+        <div className="category-filter">
+          <p className="modal__description">{t('analytics.categoryFilterDescription')}</p>
+          <div className="category-filter__heading">
+            <span>{t('analytics.includeCategories')}</span>
+            <button
+              type="button"
+              onClick={() =>
+                setDraftCategoryIds(categoryBreakdown.map((category) => category.categoryId))
+              }
+              disabled={draftCategoryIds.length === categoryBreakdown.length}
+            >
+              {t('aria.selectAll')}
+            </button>
+          </div>
+          <div className="category-filter__options">
+            {categoryBreakdown.map((category) => (
+              <label className="category-filter__option" key={category.categoryId}>
+                <input
+                  type="checkbox"
+                  checked={draftCategoryIds.includes(category.categoryId)}
+                  onChange={() => toggleDraftCategory(category.categoryId)}
+                />
+                <CategoryBadge category={category} size="small" />
+                <strong>{formatCurrency(category.amount)}</strong>
+              </label>
+            ))}
+          </div>
+          <div className="modal__actions">
+            <Button variant="ghost" type="button" onClick={() => setCategoryFilterOpen(false)}>
+              {t('common.cancel')}
+            </Button>
+            <Button
+              variant="primary"
+              type="button"
+              onClick={() => {
+                setSelectedCategoryIds(
+                  draftCategoryIds.length === categoryBreakdown.length ? null : draftCategoryIds,
+                )
+                setCategoryFilterOpen(false)
               }}
             >
               <Icon name="filter" size={15} /> {t('analytics.applyFilter')}

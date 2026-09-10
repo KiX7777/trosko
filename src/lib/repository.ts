@@ -325,6 +325,23 @@ function buildSummary(
       }
     })
     .filter((item) => item.amount > 0)
+  const accountBreakdown = accounts
+    .map((account) => {
+      const accountTransactions = transactions.filter(
+        (tx) => tx.type === 'expense' && tx.accountId === account.id,
+      )
+      const amount = accountTransactions.reduce((sum, tx) => sum + tx.amountBase, 0)
+      return {
+        accountId: account.id,
+        name: account.name,
+        amount,
+        percentage: Math.round((amount / Math.max(expenses, 1)) * 100),
+        count: accountTransactions.length,
+        color: account.color,
+      }
+    })
+    .filter((item) => item.amount > 0)
+    .sort((a, b) => b.amount - a.amount)
   const merchants = new Map<string, { amount: number; count: number }>()
   transactions
     .filter((tx) => tx.type === 'expense' && tx.merchant)
@@ -362,6 +379,7 @@ function buildSummary(
     previousNetCashFlow: 0,
     cashFlow,
     categoryBreakdown: categoryTotals,
+    accountBreakdown,
     topMerchants: [...merchants.entries()]
       .map(([merchant, value]) => ({ merchant, ...value }))
       .sort((a, b) => b.amount - a.amount)

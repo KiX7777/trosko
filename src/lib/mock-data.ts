@@ -373,6 +373,23 @@ export function createDemoSummary(): DashboardSummary {
       ...item,
       percentage: Math.round((item.amount / Math.max(expenses, 1)) * 100),
     })),
+    accountBreakdown: demoAccounts
+      .map((account) => {
+        const accountTransactions = demoTransactions.filter(
+          (tx) => tx.type === 'expense' && tx.accountId === account.id,
+        )
+        const amount = accountTransactions.reduce((sum, tx) => sum + tx.amountBase, 0)
+        return {
+          accountId: account.id,
+          name: account.name,
+          amount,
+          percentage: Math.round((amount / Math.max(expenses, 1)) * 100),
+          count: accountTransactions.length,
+          color: account.color,
+        }
+      })
+      .filter((item) => item.amount > 0)
+      .sort((a, b) => b.amount - a.amount),
     topMerchants: [
       { merchant: 'Konzum', amount: 1201.2, count: 14 },
       { merchant: 'HEP', amount: 743.6, count: 3 },
