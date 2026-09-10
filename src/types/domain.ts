@@ -30,6 +30,20 @@ export type TransactionFilters = {
   hasReceipt?: boolean
 }
 
+export type TransactionSortId = 'transactionDate' | 'description' | 'amount'
+
+export type TransactionSort = {
+  id: TransactionSortId
+  desc: boolean
+}
+
+export type TransactionPage = {
+  items: Transaction[]
+  page: number
+  total: number
+  hasMore: boolean
+}
+
 export type Period = '7D' | '1M' | '3M' | '6M' | '1Y' | 'custom'
 
 export interface Profile {

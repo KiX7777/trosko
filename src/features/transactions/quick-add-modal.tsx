@@ -20,11 +20,7 @@ import { formatCategoryOption } from '../../components/ui/category-options'
 const schema = z
   .object({
     type: z.enum(['expense', 'income', 'transfer']),
-    description: z
-      .string()
-      .trim()
-      .min(1, t('validation.required'))
-      .min(2, t('quickAdd.invalidDescription')),
+    description: z.string().trim(),
     amount: z.coerce.number().positive(t('quickAdd.invalidAmount')),
     accountId: z.string().min(1, t('quickAdd.invalidAccount')),
     categoryId: z.string().optional(),
@@ -133,7 +129,6 @@ export function QuickAddModal() {
           ))}
         </div>
         <label className="form__field">
-          <span>{t('common.description')}</span>
           <input
             placeholder={t('quickAdd.descriptionPlaceholder')}
             className={fieldClassName(Boolean(form.formState.errors.description))}

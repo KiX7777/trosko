@@ -8,3 +8,4 @@ server/dist/
 coverage/
 .tmp/
 dev-dist/
+supabase/import_wallet_svi_podaci_2026_09_10.sql

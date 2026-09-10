@@ -1,4 +1,4 @@
-import type { Period, TransactionFilters } from '../types/domain'
+import type { Period, TransactionFilters, TransactionSort } from '../types/domain'
 
 export const queryKeys = {
   profile: () => ['profile'] as const,
@@ -12,6 +12,8 @@ export const queryKeys = {
   dashboardRoot: () => ['dashboard'] as const,
   transactions: (filters?: TransactionFilters) =>
     filters === undefined ? (['transactions'] as const) : (['transactions', filters] as const),
+  transactionPages: (filters: TransactionFilters, sort: TransactionSort) =>
+    ['transactions', 'pages', filters, sort] as const,
   dashboard: (period: Period) => ['dashboard', period] as const,
   analytics: (dateFrom?: string, dateTo?: string) => ['analytics', dateFrom, dateTo] as const,
   dailyExpenses: (scope: 'transactions' | 'analytics', month: string) =>

@@ -1762,6 +1762,10 @@ h3 {
   padding: var(--space-9);
   view-transition-name: page-content;
 }
+.app__content--fallback > .page-transition {
+  animation: page-transition-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity, transform;
+}
 
 /* Native View Transitions are activated by React Router during navigation. */
 ::view-transition-image-pair(page-content) {
@@ -1778,7 +1782,7 @@ h3 {
 }
 
 ::view-transition-new(page-content) {
-  animation: page-transition-in 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: page-transition-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes page-transition-out {
@@ -1792,6 +1796,10 @@ h3 {
   from {
     opacity: 0;
     transform: translateY(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 .page {
@@ -2412,6 +2420,11 @@ h3 {
   gap: var(--space-2);
   flex-wrap: wrap;
 }
+.shortcuts__date-presets {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
 .shortcuts button {
   padding: var(--size-7) var(--size-10);
   border: var(--size-1) solid var(--shell-border);
@@ -2423,6 +2436,11 @@ h3 {
 .shortcuts button:hover {
   color: var(--shell-primary);
   border-color: var(--border-primary);
+}
+.shortcuts button.is-active {
+  color: var(--shell-primary);
+  border-color: var(--border-primary);
+  background: var(--overlay-primary-subtle);
 }
 .saved-view-dropdown {
   position: relative;
@@ -2559,6 +2577,28 @@ tbody tr:hover {
 }
 .table__empty span {
   font-size: var(--size-11);
+}
+.table__loading {
+  min-height: var(--size-170);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  color: var(--shell-muted);
+  font-size: var(--size-11);
+}
+.table__loading-spinner {
+  width: var(--size-17);
+  height: var(--size-17);
+  border: var(--size-2) solid var(--overlay-primary-strong);
+  border-top-color: var(--shell-primary);
+  border-radius: 50%;
+  animation: transactions-spin 0.8s linear infinite;
+}
+@keyframes transactions-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 .transactions-mobile-summary,
 .transactions-mobile-list,
@@ -2835,6 +2875,19 @@ tbody tr:hover {
 .transactions-mobile-load-more {
   width: 100%;
   justify-content: center;
+}
+.transactions-load-more-sentinel {
+  width: 100%;
+  height: var(--size-1);
+}
+.transactions-load-more-status {
+  padding: var(--space-3) var(--space-4);
+  color: var(--shell-muted);
+  font-size: var(--size-11);
+  text-align: center;
+}
+.transactions-mobile-load-more-status {
+  display: none;
 }
 .recurring-overview {
   display: grid;
@@ -3177,6 +3230,7 @@ tbody tr:hover {
   color: var(--shell-text);
   font-size: var(--size-11);
   font-weight: 700;
+  margin-top: var(--space-2);
 }
 .category-filter__heading button {
   padding: 0;
@@ -3193,6 +3247,7 @@ tbody tr:hover {
   max-height: var(--size-260);
   gap: var(--size-3);
   overflow-y: auto;
+  margin-top: var(--space-2);
 }
 .category-filter__option {
   display: flex;
@@ -4152,6 +4207,17 @@ tbody tr:hover {
     display: inline-flex;
     order: 5;
   }
+  .transactions-page > .transactions-load-more-status {
+    display: none;
+    order: 6;
+  }
+  .transactions-page > .transactions-mobile-load-more-status {
+    display: block;
+    order: 6;
+  }
+  .transactions-page > .transactions-load-more-sentinel {
+    display: none;
+  }
   .transactions-mobile-actions {
     position: fixed;
     right: var(--space-4);
@@ -4459,6 +4525,10 @@ tbody tr:hover {
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(page-content),
   ::view-transition-new(page-content) {
+    animation-duration: 1ms;
+  }
+
+  .app__content--fallback > .page-transition {
     animation-duration: 1ms;
   }
 

@@ -33,7 +33,9 @@ import type {
   RecurringTransaction,
   SavedView,
   Transaction,
+  TransactionPage,
   TransactionFilters,
+  TransactionSort,
   UpdateAccountInput,
   UpdateRecurringInput,
   UpdateTransactionInput,
@@ -262,7 +264,11 @@ function mapSavedView(row: Row): SavedView {
   }
 }
 
-function applyTransactionFilters(transactions: Transaction[], filters: TransactionFilters) {
+function applyTransactionFilters(
+  transactions: Transaction[],
+  filters: TransactionFilters,
+  sort: TransactionSort = { id: 'transactionDate', desc: true },
+) {
   let result = transactions
   if (filters.types?.length) result = result.filter((tx) => filters.types?.includes(tx.type))
   if (filters.accounts?.length)
@@ -295,7 +301,29 @@ function applyTransactionFilters(transactions: Transaction[], filters: Transacti
         .includes(needle),
     )
   }
-  return result.sort((a, b) => b.transactionDate.localeCompare(a.transactionDate))
+  return result.sort((a, b) => {
+    const direction = sort.desc ? -1 : 1
+    const comparison =
+      sort.id === 'description'
+        ? a.description.localeCompare(b.description, 'hr')
+        : sort.id === 'amount'
+          ? a.amountBase - b.amountBase
+          : a.transactionDate.localeCompare(b.transactionDate) ||
+            a.createdAt.localeCompare(b.createdAt) ||
+            a.id.localeCompare(b.id)
+
+    return comparison * direction
+  })
+}
+
+function transactionSortColumn(sort: TransactionSort) {
+  if (sort.id === 'description') return 'description'
+  if (sort.id === 'amount') return 'amount_base'
+  return 'transaction_date'
+}
+
+function escapePostgrestSearchTerm(value: string) {
+  return value.replace(/[\\,*()]/g, '\\$&').replace(/[%_]/g, '\\$&')
 }
 
 function buildSummary(
@@ -951,6 +979,75 @@ export async function getTransactions(filters: TransactionFilters = {}): Promise
     return applyTransactionFilters((data ?? []).map(mapTransaction), filters)
   }
   return delay(applyTransactionFilters(read('transactions', demoTransactions), filters))
+}
+
+export async function getTransactionsPage(
+  filters: TransactionFilters = {},
+  page = 0,
+  pageSize = 50,
+  sort: TransactionSort = { id: 'transactionDate', desc: true },
+): Promise<TransactionPage> {
+  const safePage = Math.max(0, page)
+  const safePageSize = Math.max(1, pageSize)
+  const from = safePage * safePageSize
+  const to = from + safePageSize - 1
+
+  if (supabase) {
+    const userId = await currentUserId()
+    const transactionLabelsSelect = filters.labels?.length
+      ? 'transaction_labels!inner(label_id)'
+      : 'transaction_labels(label_id)'
+    let query = client()
+      .from('transactions')
+      .select(`*, ${transactionLabelsSelect}`, { count: 'exact' })
+      .eq('user_id', userId)
+
+    if (filters.types?.length) query = query.in('type', filters.types)
+    if (filters.accounts?.length) query = query.in('account_id', filters.accounts)
+    if (filters.categories?.length) query = query.in('category_id', filters.categories)
+    if (filters.currencies?.length) query = query.in('currency', filters.currencies)
+    if (filters.dateFrom) query = query.gte('transaction_date', filters.dateFrom)
+    if (filters.dateTo) query = query.lte('transaction_date', filters.dateTo)
+    if (filters.amountMin !== undefined) query = query.gte('amount_base', filters.amountMin)
+    if (filters.amountMax !== undefined) query = query.lte('amount_base', filters.amountMax)
+    if (filters.recurring === true) query = query.not('recurring_transaction_id', 'is', null)
+    if (filters.recurring === false) query = query.is('recurring_transaction_id', null)
+    if (filters.hasReceipt === true) query = query.not('receipt_id', 'is', null)
+    if (filters.hasReceipt === false) query = query.is('receipt_id', null)
+    if (filters.labels?.length) query = query.in('transaction_labels.label_id', filters.labels)
+    if (filters.search?.trim()) {
+      const needle = escapePostgrestSearchTerm(filters.search.trim())
+      query = query.or(
+        `description.ilike.*${needle}*,merchant.ilike.*${needle}*,notes.ilike.*${needle}*`,
+      )
+    }
+
+    const sortColumn = transactionSortColumn(sort)
+    query = query.order(sortColumn, { ascending: !sort.desc })
+    if (sortColumn !== 'transaction_date')
+      query = query.order('transaction_date', { ascending: false })
+    query = query.order('created_at', { ascending: false }).order('id', { ascending: false })
+    const { data, count, error } = await query.range(from, to)
+    if (error) throw error
+
+    const items = applyTransactionFilters((data ?? []).map(mapTransaction), filters, sort)
+    const total = count ?? from + items.length
+    return {
+      items,
+      page: safePage,
+      total,
+      hasMore: count === null ? items.length === safePageSize : from + items.length < count,
+    }
+  }
+
+  const filtered = applyTransactionFilters(read('transactions', demoTransactions), filters, sort)
+  const items = filtered.slice(from, to + 1)
+  return delay({
+    items,
+    page: safePage,
+    total: filtered.length,
+    hasMore: to + 1 < filtered.length,
+  })
 }
 
 async function updateAccountBalance(accountId: string, delta: number, userId: string) {

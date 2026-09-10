@@ -1,5 +1,16 @@
-import { useEffect, useMemo, useState } from 'react'
-import { format, isToday, isYesterday, parseISO } from 'date-fns'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  endOfMonth,
+  endOfWeek,
+  format,
+  isToday,
+  isYesterday,
+  parseISO,
+  startOfMonth,
+  startOfWeek,
+  subMonths,
+  subWeeks,
+} from 'date-fns'
 import { hr } from 'date-fns/locale'
 import {
   flexRender,
@@ -18,9 +29,15 @@ import {
   useCreateSavedViewMutation,
   useDeleteTransactionMutation,
   useSavedViewsQuery,
-  useTransactionsQuery,
+  useInfiniteTransactionsQuery,
+  TRANSACTION_PAGE_SIZE,
 } from '../../hooks/use-transaction-queries'
-import type { Transaction, TransactionFilters, TransactionType } from '../../types/domain'
+import type {
+  Transaction,
+  TransactionFilters,
+  TransactionSort,
+  TransactionType,
+} from '../../types/domain'
 import { formatCurrency, formatDate } from '../../lib/format'
 import { Page } from '../../components/ui/page'
 import { Button } from '../../components/ui/button'
@@ -50,13 +67,50 @@ function formatMobileTime(value: string) {
   return format(parseISO(value), 'HH:mm')
 }
 
+function displayDescription(description: string) {
+  return description.trim() || '-'
+}
+
+type DateQuickFilter = 'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth'
+
+function getDateQuickFilterRange(filter: DateQuickFilter, referenceDate = new Date()) {
+  const weekOptions = { weekStartsOn: 1 as const }
+
+  switch (filter) {
+    case 'thisWeek':
+      return {
+        dateFrom: format(startOfWeek(referenceDate, weekOptions), 'yyyy-MM-dd'),
+        dateTo: format(endOfWeek(referenceDate, weekOptions), 'yyyy-MM-dd'),
+      }
+    case 'lastWeek': {
+      const lastWeek = subWeeks(referenceDate, 1)
+      return {
+        dateFrom: format(startOfWeek(lastWeek, weekOptions), 'yyyy-MM-dd'),
+        dateTo: format(endOfWeek(lastWeek, weekOptions), 'yyyy-MM-dd'),
+      }
+    }
+    case 'thisMonth':
+      return {
+        dateFrom: format(startOfMonth(referenceDate), 'yyyy-MM-dd'),
+        dateTo: format(endOfMonth(referenceDate), 'yyyy-MM-dd'),
+      }
+    case 'lastMonth': {
+      const lastMonth = subMonths(referenceDate, 1)
+      return {
+        dateFrom: format(startOfMonth(lastMonth), 'yyyy-MM-dd'),
+        dateTo: format(endOfMonth(lastMonth), 'yyyy-MM-dd'),
+      }
+    }
+  }
+}
+
 export function TransactionsPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [sorting, setSorting] = useState<SortingState>([{ id: 'transactionDate', desc: true }])
   const [selected, setSelected] = useState<Record<string, boolean>>({})
   const [activeTransactionId, setActiveTransactionId] = useState<string | null>(null)
-  const [mobileVisibleCount, setMobileVisibleCount] = useState(10)
   const [deleteTarget, setDeleteTarget] = useState<{ ids: string[]; name: string } | null>(null)
+  const loadMoreRef = useRef<HTMLDivElement>(null)
   const {
     filtersOpen,
     filterDraft,
@@ -99,7 +153,20 @@ export function TransactionsPage() {
     recurring: recurring === null ? undefined : recurring === 'true',
     hasReceipt: hasReceipt === null ? undefined : hasReceipt === 'true',
   }
-  const transactions = useTransactionsQuery(filters)
+  const transactionSort = useMemo<TransactionSort>(() => {
+    const current = sorting[0]
+    if (current?.id === 'description' || current?.id === 'amount') {
+      return { id: current.id, desc: current.desc }
+    }
+    return { id: 'transactionDate', desc: current?.desc ?? true }
+  }, [sorting])
+  const transactions = useInfiniteTransactionsQuery(filters, transactionSort)
+  const { fetchNextPage, hasNextPage, isFetchingNextPage } = transactions
+  const transactionItems = useMemo(
+    () => transactions.data?.pages.flatMap((page) => page.items) ?? [],
+    [transactions.data],
+  )
+  const transactionTotal = transactions.data?.pages[0]?.total ?? transactionItems.length
   const accounts = useAccountsQuery()
   const categories = useCategoriesQuery()
   const labels = useLabelsQuery()
@@ -148,7 +215,7 @@ export function TransactionsPage() {
             type="checkbox"
             checked={row.getIsSelected()}
             onChange={row.getToggleSelectedHandler()}
-            aria-label={t('aria.select', { name: row.original.description })}
+            aria-label={t('aria.select', { name: displayDescription(row.original.description) })}
           />
         ),
       },
@@ -164,21 +231,12 @@ export function TransactionsPage() {
         header: t('common.description'),
         cell: ({ row }) => (
           <div className="table__description">
-            <span className={`transaction-glyph ${row.original.type}`}>
-              <Icon
-                name={
-                  row.original.type === 'income'
-                    ? 'arrow-down-right'
-                    : row.original.type === 'transfer'
-                      ? 'arrow-left-right'
-                      : 'shopping-cart'
-                }
-                size={15}
-              />
-            </span>
             <span>
-              <strong>{row.original.description}</strong>
-              <small>{row.original.merchant ?? t('common.noMerchant')}</small>
+              {row.original.description ? (
+                <strong>{displayDescription(row.original.description)}</strong>
+              ) : (
+                <span className="table__muted">—</span>
+              )}
             </span>
           </div>
         ),
@@ -235,7 +293,7 @@ export function TransactionsPage() {
         cell: ({ row }) => {
           const transferAccountId =
             row.original.type === 'transfer'
-              ? transactions.data?.find(
+              ? transactionItems.find(
                   (candidate) =>
                     candidate.id !== row.original.id &&
                     ((row.original.transferGroupId &&
@@ -247,8 +305,8 @@ export function TransactionsPage() {
           return (
             <Button
               variant="icon"
-              aria-label={t('aria.edit', { name: row.original.description })}
-              title={t('aria.edit', { name: row.original.description })}
+              aria-label={t('aria.edit', { name: displayDescription(row.original.description) })}
+              title={t('aria.edit', { name: displayDescription(row.original.description) })}
               onClick={() => openEditTransaction(row.original, transferAccountId)}
             >
               <Icon name="pencil" size={15} />
@@ -257,10 +315,10 @@ export function TransactionsPage() {
         },
       },
     ],
-    [accountMap, categoryMap, labelMap, openEditTransaction, transactions.data],
+    [accountMap, categoryMap, labelMap, openEditTransaction, transactionItems],
   )
   const table = useReactTable({
-    data: transactions.data ?? [],
+    data: transactionItems,
     columns,
     state: { sorting, rowSelection: selected },
     enableRowSelection: true,
@@ -270,8 +328,7 @@ export function TransactionsPage() {
     getSortedRowModel: getSortedRowModel(),
   })
   const mobileRows = table.getRowModel().rows
-  const mobileVisibleRows = mobileRows.slice(0, mobileVisibleCount)
-  const mobileGroups = mobileVisibleRows.reduce(
+  const mobileGroups = mobileRows.reduce(
     (groups, row) => {
       const date = row.original.transactionDate
       const group = groups.find((candidate) => candidate.date === date)
@@ -282,7 +339,7 @@ export function TransactionsPage() {
     [] as Array<{ date: string; rows: typeof mobileRows }>,
   )
   const mobileSummary = useMemo(() => {
-    const items = transactions.data ?? []
+    const items = transactionItems
     const expenses = items
       .filter((transaction) => transaction.type === 'expense')
       .reduce((total, transaction) => total + transaction.amountBase, 0)
@@ -297,22 +354,40 @@ export function TransactionsPage() {
       net: income - expenses,
       currency: items[0]?.currency ?? 'EUR',
     }
-  }, [transactions.data])
+  }, [transactionItems])
   const selectedIds = Object.keys(selected)
     .filter((key) => selected[key])
-    .map((index) => (transactions.data ?? [])[Number(index)]?.id)
+    .map((index) => transactionItems[Number(index)]?.id)
     .filter(Boolean) as string[]
   const activeTransaction = activeTransactionId
-    ? (transactions.data?.find((transaction) => transaction.id === activeTransactionId) ?? null)
+    ? (transactionItems.find((transaction) => transaction.id === activeTransactionId) ?? null)
     : null
 
   useEffect(() => {
-    setMobileVisibleCount(10)
+    setSelected({})
     setActiveTransactionId(null)
     setDeleteTarget(null)
   }, [filterSignature])
 
   useEffect(() => () => resetUIState(), [resetUIState])
+
+  useEffect(() => {
+    const sentinel = loadMoreRef.current
+    if (
+      !sentinel ||
+      !hasNextPage ||
+      isFetchingNextPage ||
+      typeof IntersectionObserver === 'undefined'
+    ) {
+      return
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) void fetchNextPage()
+    })
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage])
 
   function requestDelete(ids: string[], name: string) {
     setActiveTransactionId(null)
@@ -401,14 +476,17 @@ export function TransactionsPage() {
     closeSavedViews()
   }
 
-  function setThisMonth() {
-    const today = new Date()
-    const start = new Date(today.getFullYear(), today.getMonth(), 1)
-    const next = new URLSearchParams()
-    next.set('type', 'expense')
-    next.set('dateFrom', start.toISOString().slice(0, 10))
-    next.set('dateTo', today.toISOString().slice(0, 10))
+  function setDateQuickFilter(filter: DateQuickFilter) {
+    const range = getDateQuickFilterRange(filter)
+    const next = new URLSearchParams(searchParams)
+    next.set('dateFrom', range.dateFrom)
+    next.set('dateTo', range.dateTo)
     setSearchParams(next)
+  }
+
+  function isDateQuickFilterActive(filter: DateQuickFilter) {
+    const range = getDateQuickFilterRange(filter)
+    return dateFrom === range.dateFrom && dateTo === range.dateTo
   }
 
   return (
@@ -457,12 +535,31 @@ export function TransactionsPage() {
         </Button>
       </div>
       <div className="shortcuts">
-        <button onClick={setThisMonth}>{t('transactions.thisMonth')}</button>
+        <div
+          className="shortcuts__date-presets"
+          role="group"
+          aria-label={t('transactions.quickFilters')}
+        >
+          {(
+            [
+              ['thisWeek', t('transactions.thisWeek')],
+              ['lastWeek', t('transactions.lastWeek')],
+              ['thisMonth', t('transactions.thisMonth')],
+              ['lastMonth', t('transactions.lastMonth')],
+            ] as const
+          ).map(([filter, label]) => (
+            <button
+              key={filter}
+              type="button"
+              className={isDateQuickFilterActive(filter) ? 'is-active' : ''}
+              onClick={() => setDateQuickFilter(filter)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <button onClick={() => setSearchParams({ recurring: 'true' })}>
           {t('transactions.recurring')}
-        </button>
-        <button onClick={() => setSearchParams({ hasReceipt: 'false' })}>
-          {t('transactions.withoutReceipt')}
         </button>
         <button onClick={() => setSearchParams({})}>{t('transactions.reset')}</button>
         <button onClick={openSaveView}>{t('transactions.saveView')}</button>
@@ -664,8 +761,10 @@ export function TransactionsPage() {
               requestDelete(
                 selectedIds,
                 selectedIds.length === 1
-                  ? (transactions.data?.find((transaction) => transaction.id === selectedIds[0])
-                      ?.description ?? t('transactions.title'))
+                  ? displayDescription(
+                      transactionItems.find((transaction) => transaction.id === selectedIds[0])
+                        ?.description ?? t('transactions.title'),
+                    )
                   : t('transactions.selected', { count: selectedIds.length }),
               )
             }
@@ -805,7 +904,7 @@ export function TransactionsPage() {
                         </span>
                         <div className="transactions-mobile-card__body">
                           <div className="transactions-mobile-card__heading">
-                            <strong>{transaction.description}</strong>
+                            <strong>{displayDescription(transaction.description)}</strong>
                             {transaction.receiptId && <Icon name="receipt" size={16} />}
                           </div>
                           <div className="transactions-mobile-card__meta">
@@ -856,15 +955,19 @@ export function TransactionsPage() {
       {activeTransaction && (
         <div
           className="transactions-mobile-actions"
-          aria-label={t('transactions.mobileActions', { name: activeTransaction.description })}
+          aria-label={t('transactions.mobileActions', {
+            name: displayDescription(activeTransaction.description),
+          })}
         >
-          <span className="transactions-mobile-actions__name">{activeTransaction.description}</span>
+          <span className="transactions-mobile-actions__name">
+            {displayDescription(activeTransaction.description)}
+          </span>
           <Button
             variant="secondary"
             onClick={() => {
               const transferAccountId =
                 activeTransaction.type === 'transfer'
-                  ? transactions.data?.find(
+                  ? transactionItems.find(
                       (candidate) =>
                         candidate.id !== activeTransaction.id &&
                         ((activeTransaction.transferGroupId &&
@@ -882,7 +985,12 @@ export function TransactionsPage() {
           <Button
             variant="danger"
             disabled={deleteMutation.isPending}
-            onClick={() => requestDelete([activeTransaction.id], activeTransaction.description)}
+            onClick={() =>
+              requestDelete(
+                [activeTransaction.id],
+                displayDescription(activeTransaction.description),
+              )
+            }
           >
             <Icon name="trash" size={15} /> {t('transactions.delete')}
           </Button>
@@ -896,21 +1004,30 @@ export function TransactionsPage() {
           </button>
         </div>
       )}
-      {mobileVisibleRows.length < mobileRows.length && (
+      {transactions.hasNextPage && (
         <Button
           className="transactions-mobile-load-more"
           variant="secondary"
-          onClick={() => setMobileVisibleCount((count) => count + 10)}
+          disabled={transactions.isFetchingNextPage}
+          onClick={() => void transactions.fetchNextPage()}
         >
           {t('transactions.mobileLoadMore', {
-            count: Math.min(10, mobileRows.length - mobileVisibleRows.length),
+            count: Math.min(
+              TRANSACTION_PAGE_SIZE,
+              Math.max(0, transactionTotal - transactionItems.length),
+            ),
           })}
           <Icon name="chevron-down" size={16} />
         </Button>
       )}
+      {transactions.isFetchingNextPage && (
+        <div className="transactions-mobile-load-more-status" role="status">
+          {t('transactions.loadingMore')}
+        </div>
+      )}
       <div className="card card--table">
         <div className="table__meta">
-          <span>{t('transactions.results', { count: transactions.data?.length ?? 0 })}</span>
+          <span>{t('transactions.results', { count: transactionTotal })}</span>
           <span className="table__muted">{t('transactions.sortHint')}</span>
         </div>
         <div className="table__scroll">
@@ -943,7 +1060,16 @@ export function TransactionsPage() {
               ))}
             </thead>
             <tbody>
-              {table.getRowModel().rows.length ? (
+              {transactions.isLoading ? (
+                <tr>
+                  <td colSpan={columns.length}>
+                    <div className="table__loading" role="status">
+                      <span className="table__loading-spinner" aria-hidden="true" />
+                      <span>{t('transactions.loading')}</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : table.getRowModel().rows.length ? (
                 table.getRowModel().rows.map((row) => (
                   <tr key={row.id}>
                     {row.getVisibleCells().map((cell) => (
@@ -968,6 +1094,12 @@ export function TransactionsPage() {
           </table>
         </div>
       </div>
+      {transactions.isFetchingNextPage && (
+        <div className="transactions-load-more-status" role="status">
+          {t('transactions.loadingMore')}
+        </div>
+      )}
+      <div ref={loadMoreRef} className="transactions-load-more-sentinel" aria-hidden="true" />
     </Page>
   )
 }

@@ -27,12 +27,21 @@ const secondaryNav = [
   { to: '/settings', key: 'nav.settings' as const, icon: 'settings' },
 ]
 
+function supportsNativeViewTransitions() {
+  return (
+    typeof document !== 'undefined' &&
+    typeof (document as Document & { startViewTransition?: unknown }).startViewTransition ===
+      'function'
+  )
+}
+
 export function AppShell() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const profileMenuRef = useRef<HTMLDivElement>(null)
   const location = useLocation()
   const navigate = useNavigate()
+  const nativeViewTransitionsAvailable = supportsNativeViewTransitions()
   const openQuickAdd = useUIStore((state) => state.openQuickAdd)
   const current = [...primaryNav, ...secondaryNav].find((item) => location.pathname === item.to)
   const profile = useProfileQuery()
@@ -164,8 +173,12 @@ export function AppShell() {
             </div>
           </div>
         </header>
-        <main className="app__content">
-          <Outlet />
+        <main
+          className={`app__content${nativeViewTransitionsAvailable ? '' : ' app__content--fallback'}`}
+        >
+          <div className="page-transition" key={location.pathname}>
+            <Outlet />
+          </div>
         </main>
       </div>
       <nav className="mobile-nav">

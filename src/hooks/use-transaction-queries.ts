@@ -1,13 +1,14 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   createSavedView,
   createTransaction,
   deleteTransaction,
   getSavedViews,
   getTransactions,
+  getTransactionsPage,
   updateTransaction,
 } from '../lib/repository'
-import type { Transaction, TransactionFilters } from '../types/domain'
+import type { Transaction, TransactionFilters, TransactionSort } from '../types/domain'
 import type { MutationCallbacks } from './mutation-callbacks'
 import { queryKeys } from './query-keys'
 
@@ -15,6 +16,21 @@ export function useTransactionsQuery(filters: TransactionFilters = {}) {
   return useQuery({
     queryKey: queryKeys.transactions(filters),
     queryFn: () => getTransactions(filters),
+  })
+}
+
+export const TRANSACTION_PAGE_SIZE = 50
+
+export function useInfiniteTransactionsQuery(
+  filters: TransactionFilters = {},
+  sort: TransactionSort = { id: 'transactionDate', desc: true },
+) {
+  return useInfiniteQuery({
+    queryKey: queryKeys.transactionPages(filters, sort),
+    queryFn: ({ pageParam }) =>
+      getTransactionsPage(filters, pageParam, TRANSACTION_PAGE_SIZE, sort),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.page + 1 : undefined),
   })
 }
 
