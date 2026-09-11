@@ -104,6 +104,7 @@ export function AnalyticsPage() {
   const [draftCategoryIds, setDraftCategoryIds] = useState<string[]>([])
   const currentMonth = format(new Date(), 'yyyy-MM')
   const [expenseMonth, setExpenseMonth] = useState(currentMonth)
+  const [heatmapMonth, setHeatmapMonth] = useState(currentMonth)
   const [comparisonMonths, setComparisonMonths] = useState(() =>
     Array.from({ length: 3 }, (_, index) => format(subMonths(new Date(), index), 'yyyy-MM')),
   )
@@ -124,6 +125,7 @@ export function AnalyticsPage() {
     'analytics',
     comparisonMonths,
   )
+  const heatmapExpenseTransactions = useDailyExpenseTransactionsQueries('analytics', [heatmapMonth])
   const data = summary.data
   const expenseMonthOptions = useMemo<SelectOption[]>(
     () =>
@@ -383,17 +385,17 @@ export function AnalyticsPage() {
             {t('dashboard.expenseMonthFilter')}
           </label>
           <AppSelect
-            value={expenseMonth}
+            value={heatmapMonth}
             options={expenseMonthOptions}
-            onChange={setExpenseMonth}
+            onChange={setHeatmapMonth}
             placeholder={t('common.month')}
             inputId="analytics-heatmap-month"
           />
         </div>
       </div>
       <SpendingHeatmapChart
-        transactions={dailyExpenseTransactions.data ?? []}
-        month={expenseMonth}
+        transactions={heatmapExpenseTransactions[0]?.data ?? []}
+        month={heatmapMonth}
         ariaLabel={t('analytics.spendingHeatmap')}
       />
       <div className="spending-heatmap__legend" aria-label={t('analytics.spendingHeatmapLegend')}>
