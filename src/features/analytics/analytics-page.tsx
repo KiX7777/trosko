@@ -1,10 +1,23 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { endOfMonth, format, startOfMonth, subMonths } from 'date-fns'
+import {
+  endOfMonth,
+  endOfWeek,
+  endOfYear,
+  format,
+  startOfMonth,
+  startOfWeek,
+  startOfYear,
+  subDays,
+  subMonths,
+  subWeeks,
+  subYears,
+} from 'date-fns'
 import { hr } from 'date-fns/locale'
 import { DayPicker, type DateRange } from 'react-day-picker'
 import 'react-day-picker/style.css'
 import { useAnalyticsQueries } from '../../hooks/use-dashboard-queries'
+import { useDailyExpenseTransactionsQueries } from '../../hooks/use-transaction-queries'
 import { formatCurrency } from '../../lib/format'
 import { Page } from '../../components/ui/page'
 import { MetricCard } from '../../components/ui/metric-card'
@@ -16,6 +29,8 @@ import { AppSelect, type SelectOption } from '../../components/ui/select'
 import {
   CashFlowChart,
   DailyExpenseChart,
+  SpendingHeatmapChart,
+  MonthlyExpenseComparisonChart,
   AccountExpenseDistributionChart,
   ExpenseDistributionChart,
   MerchantProgressChart,
@@ -83,11 +98,16 @@ export function AnalyticsPage() {
   const [filterOpen, setFilterOpen] = useState(false)
   const [draftRange, setDraftRange] = useState<DateRange | undefined>(defaultRange)
   const [dateRange, setDateRange] = useState<DateRange>(defaultRange)
+  const [pickerMonth, setPickerMonth] = useState(defaultRange.from ?? new Date())
   const [categoryFilterOpen, setCategoryFilterOpen] = useState(false)
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<string[] | null>(null)
   const [draftCategoryIds, setDraftCategoryIds] = useState<string[]>([])
   const currentMonth = format(new Date(), 'yyyy-MM')
   const [expenseMonth, setExpenseMonth] = useState(currentMonth)
+  const [comparisonMonths, setComparisonMonths] = useState(() =>
+    Array.from({ length: 3 }, (_, index) => format(subMonths(new Date(), index), 'yyyy-MM')),
+  )
+  const [visibleComparisonSeries, setVisibleComparisonSeries] = useState([true, true, true])
   const expenseMonthDate = new Date(`${expenseMonth}-01T12:00:00`)
   const expenseMonthStart = format(startOfMonth(expenseMonthDate), 'yyyy-MM-dd')
   const expenseMonthEnd = format(endOfMonth(expenseMonthDate), 'yyyy-MM-dd')
@@ -98,6 +118,10 @@ export function AnalyticsPage() {
     expenseMonth,
     expenseMonthStart,
     expenseMonthEnd,
+  )
+  const comparisonExpenseTransactions = useDailyExpenseTransactionsQueries(
+    'analytics',
+    comparisonMonths,
   )
   const data = summary.data
   const expenseMonthOptions = useMemo<SelectOption[]>(
@@ -115,6 +139,38 @@ export function AnalyticsPage() {
   )
   const expenseMonthLabel =
     expenseMonthOptions.find((option) => option.value === expenseMonth)?.label ?? expenseMonth
+  const comparisonSeries = useMemo(
+    () =>
+      comparisonMonths.map((month, index) => ({
+        month,
+        label: expenseMonthOptions.find((option) => option.value === month)?.label ?? month,
+        color: ['var(--shell-primary)', 'var(--shell-income)', 'var(--shell-warning)'][index],
+        transactions: comparisonExpenseTransactions[index]?.data ?? [],
+      })),
+    [comparisonExpenseTransactions, comparisonMonths, expenseMonthOptions],
+  )
+  const visibleComparisonChartSeries = useMemo(
+    () => comparisonSeries.filter((_, index) => visibleComparisonSeries[index]),
+    [comparisonSeries, visibleComparisonSeries],
+  )
+
+  const selectComparisonMonth = (index: number, month: string) => {
+    setComparisonMonths((current) => {
+      const matchingIndex = current.indexOf(month)
+      if (matchingIndex === index) return current
+
+      return current.map((currentMonth, currentIndex) => {
+        if (currentIndex === index) return month
+        return currentIndex === matchingIndex ? current[index] : currentMonth
+      })
+    })
+  }
+
+  const toggleComparisonSeries = (index: number) => {
+    setVisibleComparisonSeries((current) =>
+      current.map((isVisible, currentIndex) => (currentIndex === index ? !isVisible : isVisible)),
+    )
+  }
   const categoryBreakdown = data?.categoryBreakdown ?? []
   const visibleCategoryBreakdown = useMemo(() => {
     const selectedCategories = categoryBreakdown.filter(
@@ -217,6 +273,96 @@ export function AnalyticsPage() {
         month={expenseMonth}
         ariaLabel={t('dashboard.dailyExpenses')}
       />
+    </article>
+  )
+
+  const monthlyExpenseComparisonCard = (
+    <article className="card analytics__chart-card monthly-expense-comparison">
+      <div className="section__title-row">
+        <div>
+          <h3>{t('analytics.expenseComparison')}</h3>
+          <p>{t('analytics.expenseComparisonDescription')}</p>
+        </div>
+        <div className="monthly-expense-comparison__filters">
+          {comparisonMonths.map((month, index) => (
+            <div className="chart__filter" key={index}>
+              <label
+                className="route-loading__sr-only"
+                htmlFor={`analytics-comparison-month-${index}`}
+              >
+                {t('analytics.expenseComparisonMonthFilter', { number: index + 1 })}
+              </label>
+              <AppSelect
+                value={month}
+                options={expenseMonthOptions}
+                onChange={(value) => selectComparisonMonth(index, value)}
+                placeholder={t('common.month')}
+                inputId={`analytics-comparison-month-${index}`}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div
+        className="monthly-expense-comparison__legend"
+        aria-label={t('analytics.expenseComparison')}
+      >
+        {comparisonSeries.map((series, index) => {
+          const total = series.transactions.reduce(
+            (sum, transaction) => sum + transaction.amountBase,
+            0,
+          )
+          const isVisible = visibleComparisonSeries[index]
+
+          return (
+            <button
+              className={!isVisible ? 'is-hidden' : undefined}
+              type="button"
+              key={series.month}
+              aria-pressed={isVisible}
+              aria-label={t('analytics.toggleExpenseComparisonMonth', { month: series.label })}
+              onClick={() => toggleComparisonSeries(index)}
+              disabled={isVisible && visibleComparisonSeries.filter(Boolean).length === 1}
+            >
+              <span>
+                <i className="chart__legend-dot" style={{ backgroundColor: series.color }} />
+                {series.label}
+              </span>
+              <strong>{formatCurrency(total)}</strong>
+            </button>
+          )
+        })}
+      </div>
+      <MonthlyExpenseComparisonChart
+        series={visibleComparisonChartSeries}
+        ariaLabel={t('analytics.expenseComparison')}
+      />
+    </article>
+  )
+
+  const spendingHeatmapCard = (
+    <article className="card widget--spending-heatmap analytics__chart-card">
+      <div className="section__title-row">
+        <div>
+          <h3>{t('analytics.spendingHeatmap')}</h3>
+          <p>{t('analytics.spendingHeatmapDescription')}</p>
+        </div>
+        <span className="chart__total">{expenseMonthLabel}</span>
+      </div>
+      <SpendingHeatmapChart
+        transactions={dailyExpenseTransactions.data ?? []}
+        month={expenseMonth}
+        ariaLabel={t('analytics.spendingHeatmap')}
+      />
+      <div className="spending-heatmap__legend" aria-label={t('analytics.spendingHeatmapLegend')}>
+        <span>{t('analytics.spendingHeatmapLess')}</span>
+        <div aria-hidden="true">
+          {[0, 1, 2, 3, 4].map((level) => (
+            <i key={level} className={`spending-heatmap__legend-cell level-${level}`} />
+          ))}
+        </div>
+        <span>{t('analytics.spendingHeatmapMore')}</span>
+      </div>
     </article>
   )
 
@@ -360,6 +506,74 @@ export function AnalyticsPage() {
   const isCategories = activeTab === 'analytics.tabCategories'
   const isAccounts = activeTab === 'analytics.tabAccounts'
   const isCashFlow = activeTab === 'analytics.tabCashFlow'
+  const selectDateRangeShortcut = (range: DateRange) => {
+    setDraftRange(range)
+    if (range.from) setPickerMonth(range.from)
+  }
+  const dateRangeShortcuts = [
+    {
+      label: t('analytics.thisMonth'),
+      getRange: (): DateRange => {
+        const today = new Date()
+        return { from: startOfMonth(today), to: endOfMonth(today) }
+      },
+    },
+    {
+      label: t('analytics.lastMonth'),
+      getRange: (): DateRange => {
+        const lastMonth = subMonths(new Date(), 1)
+        return { from: startOfMonth(lastMonth), to: endOfMonth(lastMonth) }
+      },
+    },
+    {
+      label: t('analytics.thisWeek'),
+      getRange: (): DateRange => {
+        const today = new Date()
+        return {
+          from: startOfWeek(today, { weekStartsOn: 1 }),
+          to: endOfWeek(today, { weekStartsOn: 1 }),
+        }
+      },
+    },
+    {
+      label: t('analytics.lastWeek'),
+      getRange: (): DateRange => {
+        const lastWeek = subWeeks(new Date(), 1)
+        return {
+          from: startOfWeek(lastWeek, { weekStartsOn: 1 }),
+          to: endOfWeek(lastWeek, { weekStartsOn: 1 }),
+        }
+      },
+    },
+    {
+      label: t('analytics.thisYear'),
+      getRange: (): DateRange => {
+        const today = new Date()
+        return { from: startOfYear(today), to: endOfYear(today) }
+      },
+    },
+    {
+      label: t('analytics.lastYear'),
+      getRange: (): DateRange => {
+        const lastYear = subYears(new Date(), 1)
+        return { from: startOfYear(lastYear), to: endOfYear(lastYear) }
+      },
+    },
+    {
+      label: t('analytics.last7Days'),
+      getRange: (): DateRange => {
+        const today = new Date()
+        return { from: subDays(today, 6), to: today }
+      },
+    },
+    {
+      label: t('analytics.last30Days'),
+      getRange: (): DateRange => {
+        const today = new Date()
+        return { from: subDays(today, 29), to: today }
+      },
+    },
+  ]
 
   return (
     <Page
@@ -374,6 +588,7 @@ export function AnalyticsPage() {
           aria-expanded={filterOpen}
           onClick={() => {
             setDraftRange(dateRange)
+            setPickerMonth(dateRange.from ?? new Date())
             setFilterOpen(true)
           }}
         >
@@ -413,6 +628,8 @@ export function AnalyticsPage() {
             {metrics}
             <section className="analytics__grid">
               {dailyExpensesCard}
+              {spendingHeatmapCard}
+              {monthlyExpenseComparisonCard}
               {cashFlowCard}
               {categoriesCard}
               {merchantsCard}
@@ -448,6 +665,20 @@ export function AnalyticsPage() {
       >
         <div className="date-range-filter">
           <p className="modal__description">{t('analytics.filterDescription')}</p>
+          <div className="date-range-filter__shortcuts">
+            <span>{t('analytics.quickRanges')}</span>
+            <div>
+              {dateRangeShortcuts.map((shortcut) => (
+                <button
+                  type="button"
+                  key={shortcut.label}
+                  onClick={() => selectDateRangeShortcut(shortcut.getRange())}
+                >
+                  {shortcut.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="date-range-filter__selection" aria-live="polite">
             <span>{t('analytics.selectedRange')}</span>
             <strong>{formatRangeLabel(draftRange)}</strong>
@@ -457,7 +688,8 @@ export function AnalyticsPage() {
             locale={hr}
             selected={draftRange}
             onSelect={setDraftRange}
-            defaultMonth={draftRange?.from ?? new Date()}
+            month={pickerMonth}
+            onMonthChange={setPickerMonth}
             numberOfMonths={isCompactDatePicker ? 1 : 2}
             showOutsideDays
           />

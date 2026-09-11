@@ -1,4 +1,11 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
+import { endOfMonth, format, startOfMonth } from 'date-fns'
 import {
   createSavedView,
   createTransaction,
@@ -54,6 +61,24 @@ export function useDailyExpenseTransactionsQuery(
   return useQuery({
     queryKey: queryKeys.dailyExpenses(scope, month),
     queryFn: () => getTransactions({ types: ['expense'], dateFrom, dateTo }),
+  })
+}
+
+export function useDailyExpenseTransactionsQueries(
+  scope: 'transactions' | 'analytics',
+  months: readonly string[],
+) {
+  return useQueries({
+    queries: months.map((month) => {
+      const monthDate = new Date(`${month}-01T12:00:00`)
+      const dateFrom = format(startOfMonth(monthDate), 'yyyy-MM-dd')
+      const dateTo = format(endOfMonth(monthDate), 'yyyy-MM-dd')
+
+      return {
+        queryKey: queryKeys.dailyExpenses(scope, month),
+        queryFn: () => getTransactions({ types: ['expense'], dateFrom, dateTo }),
+      }
+    }),
   })
 }
 

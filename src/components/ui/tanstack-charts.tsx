@@ -1,7 +1,17 @@
 import { useMemo } from 'react'
-import { eachDayOfInterval, endOfMonth, format, parseISO, startOfMonth } from 'date-fns'
+import {
+  differenceInCalendarWeeks,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
+  getISODay,
+  parseISO,
+  startOfMonth,
+  startOfWeek,
+} from 'date-fns'
 import { hr } from 'date-fns/locale'
-import { areaY, barX, barY, defineChart, group, lineY, stack } from '@tanstack/charts'
+import { areaY, barX, barY, cell, defineChart, group, lineY, stack } from '@tanstack/charts'
 import { pie, polar, radialArc } from '@tanstack/charts/polar'
 import { scaleBand } from '@tanstack/charts/scales/band'
 import { scaleLinear } from '@tanstack/charts/scales/linear'
@@ -46,6 +56,34 @@ type DailyExpensePoint = {
   day: number
   daily: number
   cumulative: number
+}
+
+type MonthlyExpenseComparisonPoint = DailyExpensePoint & {
+  series: string
+}
+
+type SpendingHeatmapPoint = {
+  date: string
+  weekday: string
+  week: string
+  amount: number
+  level: string
+}
+
+const heatmapWeekdays = ['Pon', 'Uto', 'Sri', 'Čet', 'Pet', 'Sub', 'Ned']
+const heatmapColors = [
+  'var(--shell-panel-2)',
+  'var(--overlay-primary-muted)',
+  'var(--overlay-primary-strong)',
+  'var(--shell-primary)',
+  'var(--shell-primary-deep)',
+]
+
+export type MonthlyExpenseComparisonSeries = {
+  month: string
+  label: string
+  color: string
+  transactions: readonly Transaction[]
 }
 
 export function DailyExpenseChart({
@@ -169,6 +207,253 @@ export function DailyExpenseChart({
   )
 }
 
+export function SpendingHeatmapChart({
+  transactions,
+  month,
+  height = 198,
+  ariaLabel,
+}: {
+  transactions: readonly Transaction[]
+  month: string
+  height?: number
+  ariaLabel: string
+}) {
+  const { rows, weeks } = useMemo<{ rows: SpendingHeatmapPoint[]; weeks: string[] }>(() => {
+    const monthStart = startOfMonth(parseISO(`${month}-01`))
+    const monthEnd = endOfMonth(monthStart)
+    const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 })
+    const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 })
+    const totalsByDate = new Map<string, number>()
+
+    transactions.forEach((transaction) => {
+      totalsByDate.set(
+        transaction.transactionDate,
+        (totalsByDate.get(transaction.transactionDate) ?? 0) + transaction.amountBase,
+      )
+    })
+
+    const maxAmount = Math.max(...totalsByDate.values(), 0)
+    const weeks = Array.from(
+      {
+        length: differenceInCalendarWeeks(calendarEnd, calendarStart, { weekStartsOn: 1 }) + 1,
+      },
+      (_, index) => `week-${index + 1}`,
+    )
+    const rows = eachDayOfInterval({ start: monthStart, end: monthEnd }).map((date) => {
+      const dateValue = format(date, 'yyyy-MM-dd')
+      const amount = totalsByDate.get(dateValue) ?? 0
+      const level = amount === 0 ? 0 : Math.ceil((amount / maxAmount) * (heatmapColors.length - 1))
+
+      return {
+        date: dateValue,
+        weekday: heatmapWeekdays[getISODay(date) - 1],
+        week: `week-${differenceInCalendarWeeks(date, calendarStart, { weekStartsOn: 1 }) + 1}`,
+        amount,
+        level: String(level),
+      }
+    })
+
+    return { rows, weeks }
+  }, [month, transactions])
+
+  const definition = useMemo(
+    () =>
+      defineChart({
+        motion: {
+          transition: { type: 'tween', duration: 700, easing: 'ease-out' },
+        },
+        marks: [
+          cell(rows, {
+            id: 'spending-heatmap',
+            x: 'weekday',
+            y: 'week',
+            color: 'level',
+            key: 'date',
+            inset: 2,
+            radius: 3,
+            motion: { transition: { type: 'tween', duration: 620, easing: 'ease-out' } },
+          }),
+        ],
+        scales: {
+          x: {
+            scale: () => scaleBand<string>().domain(heatmapWeekdays).padding(0.08),
+            side: 'top',
+            axis: {
+              ticks: {
+                format: (value) => value,
+              },
+            },
+          },
+          y: {
+            scale: () => scaleBand<string>().domain(weeks).padding(0.08),
+            axis: false,
+          },
+        },
+        color: {
+          domain: heatmapColors.map((_, index) => String(index)),
+          range: heatmapColors,
+        },
+        tooltip: {
+          use: tooltip,
+          items: [
+            {
+              field: 'date',
+              label: t('common.date'),
+              text: (point) => format(parseISO(point.datum.date), 'EEEE, d. MMMM', { locale: hr }),
+            },
+            {
+              field: 'amount',
+              label: t('common.expense'),
+              text: (point) => formatCurrency(point.datum.amount),
+            },
+          ],
+        },
+      }),
+    [rows, weeks],
+  )
+
+  return (
+    <div className="chart__container chart--spending-heatmap">
+      <Chart
+        renderer={chartMotion}
+        definition={definition}
+        height={height}
+        ariaLabel={ariaLabel}
+        ariaDescription={t('analytics.spendingHeatmapChartDescription')}
+      />
+    </div>
+  )
+}
+
+export function MonthlyExpenseComparisonChart({
+  series,
+  height = 260,
+  ariaLabel,
+}: {
+  series: readonly MonthlyExpenseComparisonSeries[]
+  height?: number
+  ariaLabel: string
+}) {
+  const rows = useMemo<MonthlyExpenseComparisonPoint[]>(
+    () =>
+      series.flatMap(({ month, label, transactions }) => {
+        const monthStart = startOfMonth(parseISO(`${month}-01`))
+        const monthEnd = endOfMonth(monthStart)
+        const totalsByDate = new Map<string, number>()
+
+        transactions.forEach((transaction) => {
+          totalsByDate.set(
+            transaction.transactionDate,
+            (totalsByDate.get(transaction.transactionDate) ?? 0) + transaction.amountBase,
+          )
+        })
+
+        return eachDayOfInterval({ start: monthStart, end: monthEnd }).reduce<
+          MonthlyExpenseComparisonPoint[]
+        >((points, date) => {
+          const dateValue = format(date, 'yyyy-MM-dd')
+          const daily = totalsByDate.get(dateValue) ?? 0
+          const cumulative = (points.at(-1)?.cumulative ?? 0) + daily
+          return [
+            ...points,
+            { date: dateValue, day: date.getDate(), series: label, daily, cumulative },
+          ]
+        }, [])
+      }),
+    [series],
+  )
+  const maxDay = Math.max(...rows.map((point) => point.day), 1)
+
+  const definition = useMemo(
+    () =>
+      defineChart({
+        motion: {
+          transition: { type: 'tween', duration: 780, easing: 'ease-out' },
+        },
+        marks: [
+          areaY(rows, {
+            id: 'monthly-expense-comparison-area',
+            x: 'day',
+            y: 'cumulative',
+            y1: 0,
+            z: 'series',
+            color: 'series',
+            fillOpacity: 0.13,
+            motion: { transition: { type: 'tween', duration: 780, easing: 'ease-out' } },
+          }),
+          lineY(rows, {
+            id: 'monthly-expense-comparison-line',
+            x: 'day',
+            y: 'cumulative',
+            z: 'series',
+            color: 'series',
+            points: true,
+            strokeWidth: 2.5,
+            motion: { transition: { type: 'tween', duration: 780, easing: 'ease-out' } },
+          }),
+        ],
+        scales: {
+          x: {
+            scale: scaleLinear,
+            nice: false,
+            domain: [1, maxDay],
+            axis: {
+              ticks: {
+                count: Math.min(7, maxDay),
+                format: (value) => `${Math.round(value)}.`,
+              },
+            },
+          },
+          y: {
+            scale: scaleLinear,
+            nice: true,
+            grid: true,
+            axis: {
+              ticks: {
+                count: 4,
+                format: (value) => `${Math.round(value)} €`,
+              },
+            },
+          },
+        },
+        color: {
+          domain: series.map((item) => item.label),
+          range: series.map((item) => item.color),
+        },
+        tooltip: {
+          use: tooltip,
+          items: [
+            { field: 'series', label: t('common.month') },
+            { field: 'day', label: t('common.date'), text: (point) => `${point.datum.day}.` },
+            {
+              field: 'daily',
+              label: t('dashboard.dailyExpense'),
+              text: (point) => formatCurrency(point.datum.daily),
+            },
+            {
+              field: 'cumulative',
+              label: t('dashboard.cumulativeExpense'),
+              text: (point) => formatCurrency(point.datum.cumulative),
+            },
+          ],
+        },
+      }),
+    [maxDay, rows, series],
+  )
+
+  return (
+    <div className="chart__container chart--monthly-expense-comparison">
+      <Chart
+        renderer={chartMotion}
+        definition={definition}
+        height={height}
+        ariaLabel={ariaLabel}
+        ariaDescription={t('analytics.expenseComparisonChartDescription')}
+      />
+    </div>
+  )
+}
+
 export function CashFlowChart({
   data,
   height = 220,
@@ -243,9 +528,7 @@ export function CashFlowChart({
               field: 'series',
               label: t('common.type'),
               text: (point) =>
-                point.datum.series === 'income'
-                  ? t('common.income')
-                  : t('common.expenses'),
+                point.datum.series === 'income' ? t('common.income') : t('common.expenses'),
             },
             {
               field: 'amount',

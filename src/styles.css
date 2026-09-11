@@ -690,8 +690,7 @@ button:active {
   overflow: hidden;
   isolation: isolate;
   color: var(--shell-text);
-  background:
-    linear-gradient(145deg, var(--shell-bg), var(--bg) 58%, var(--shell-panel));
+  background: linear-gradient(145deg, var(--shell-bg), var(--bg) 58%, var(--shell-panel));
 }
 .error-page__ambient {
   position: absolute;
@@ -2303,6 +2302,7 @@ h3 {
 }
 .widget--cashflow,
 .widget--daily-expenses,
+.widget--spending-heatmap,
 .widget--category,
 .widget--accounts,
 .widget--upcoming,
@@ -2360,9 +2360,104 @@ h3 {
     radial-gradient(circle at 88% 0%, var(--overlay-primary-muted), transparent 34%),
     var(--shell-panel);
 }
+.widget--spending-heatmap {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 82% 0%, var(--overlay-primary-subtle), transparent 34%),
+    var(--shell-panel);
+}
+.spending-heatmap__legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  color: var(--shell-muted);
+  font-size: var(--size-10);
+}
+.spending-heatmap__legend > div {
+  display: flex;
+  gap: var(--size-4);
+}
+.spending-heatmap__legend-cell {
+  width: var(--size-9);
+  height: var(--size-9);
+  display: block;
+  border-radius: var(--size-2);
+}
+.spending-heatmap__legend-cell.level-0 {
+  background: var(--shell-panel-2);
+}
+.spending-heatmap__legend-cell.level-1 {
+  background: var(--overlay-primary-muted);
+}
+.spending-heatmap__legend-cell.level-2 {
+  background: var(--overlay-primary-strong);
+}
+.spending-heatmap__legend-cell.level-3 {
+  background: var(--shell-primary);
+}
+.spending-heatmap__legend-cell.level-4 {
+  background: var(--shell-primary-deep);
+}
 .chart__filter {
   width: var(--size-170);
   flex: 0 0 auto;
+}
+.monthly-expense-comparison__filters {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+.monthly-expense-comparison__legend {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+.monthly-expense-comparison__legend button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--size-9) var(--size-10);
+  border: var(--size-1) solid var(--shell-border);
+  border-radius: var(--space-2);
+  color: var(--shell-text);
+  background: var(--shell-panel-2);
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) var(--ease-standard),
+    opacity var(--duration-fast) var(--ease-standard);
+}
+.monthly-expense-comparison__legend button:hover,
+.monthly-expense-comparison__legend button:focus-visible {
+  border-color: var(--shell-primary);
+}
+.monthly-expense-comparison__legend button.is-hidden {
+  opacity: 0.48;
+}
+.monthly-expense-comparison__legend button:disabled {
+  cursor: not-allowed;
+}
+.monthly-expense-comparison__legend span {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: var(--size-5);
+  overflow: hidden;
+  color: var(--shell-secondary);
+  font-size: var(--size-10);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.monthly-expense-comparison__legend strong {
+  flex: 0 0 auto;
+  font-size: var(--size-11);
+  font-variant-numeric: tabular-nums;
 }
 .daily-expenses__summary {
   display: flex;
@@ -3970,6 +4065,45 @@ tbody tr:hover {
   min-width: 0;
   overflow: hidden;
 }
+.date-range-filter__shortcuts {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+.date-range-filter__shortcuts > span {
+  flex: 0 0 auto;
+  color: var(--shell-muted);
+  font-size: var(--size-10);
+  font-weight: 700;
+  letter-spacing: var(--tracking-044);
+  text-transform: uppercase;
+}
+.date-range-filter__shortcuts > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+.date-range-filter__shortcuts button {
+  padding: var(--space-2) var(--space-3);
+  border: var(--size-1) solid var(--shell-border);
+  border-radius: var(--size-10);
+  color: var(--shell-secondary);
+  background: var(--shell-panel-2);
+  font-size: var(--size-11);
+  font-weight: 700;
+  transition:
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard);
+}
+.date-range-filter__shortcuts button:hover {
+  border-color: var(--shell-primary);
+  color: var(--shell-primary);
+  background: var(--overlay-primary);
+}
 .date-range-filter__selection {
   display: flex;
   align-items: baseline;
@@ -4112,6 +4246,13 @@ tbody tr:hover {
   border-top: var(--size-1) solid var(--shell-border);
 }
 @media (max-width: 736px) {
+  .date-range-filter__shortcuts {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .date-range-filter__shortcuts > div {
+    justify-content: flex-start;
+  }
   .date-range-filter .rdp-months {
     gap: 0;
   }
@@ -4360,6 +4501,13 @@ tbody tr:hover {
     align-self: stretch;
     justify-content: space-between;
   }
+  .monthly-expense-comparison .section__title-row {
+    flex-direction: column;
+  }
+  .monthly-expense-comparison__filters {
+    width: 100%;
+    justify-content: flex-start;
+  }
   .summary,
   .analytics__metrics {
     grid-template-columns: 1fr 1fr;
@@ -4569,6 +4717,9 @@ tbody tr:hover {
   .labels__grid {
     grid-template-columns: 1fr;
   }
+  .monthly-expense-comparison__legend {
+    grid-template-columns: 1fr;
+  }
   .balance {
     min-height: var(--space-45);
   }
@@ -4583,6 +4734,7 @@ tbody tr:hover {
   }
   .widget--cashflow,
   .widget--daily-expenses,
+  .widget--spending-heatmap,
   .widget--category,
   .widget--accounts,
   .widget--upcoming,
@@ -4664,8 +4816,38 @@ tbody tr:hover {
   --chart-reveal-duration: 760ms;
   animation-delay: 70ms;
 }
+.chart--monthly-expense-comparison {
+  height: var(--space-62);
+  display: block;
+  overflow: visible;
+  padding: 0;
+  margin-top: var(--space-2);
+  background: transparent;
+  --chart-reveal-duration: 760ms;
+  animation-delay: 70ms;
+}
+.chart--spending-heatmap {
+  height: var(--size-205);
+  display: block;
+  overflow: visible;
+  padding: 0;
+  margin-top: var(--space-3);
+  background: transparent;
+  --chart-reveal-duration: 700ms;
+  animation-delay: 70ms;
+}
+.chart--monthly-expense-comparison .ts-chart-host,
+.chart--monthly-expense-comparison .ts-chart-surface {
+  overflow: visible;
+  color: var(--shell-secondary);
+}
 .chart--daily-expenses .ts-chart-host,
 .chart--daily-expenses .ts-chart-surface {
+  overflow: visible;
+  color: var(--shell-secondary);
+}
+.chart--spending-heatmap .ts-chart-host,
+.chart--spending-heatmap .ts-chart-surface {
   overflow: visible;
   color: var(--shell-secondary);
 }
