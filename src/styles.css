@@ -2405,20 +2405,73 @@ h3 {
   width: var(--size-170);
   flex: 0 0 auto;
 }
-.monthly-expense-comparison__filters {
+.month-multiselect {
+  position: relative;
+  flex: 0 0 auto;
+}
+.month-multiselect__trigger {
+  display: inline-flex;
+  min-height: var(--size-42);
+  align-items: center;
+  gap: var(--size-6);
+  padding: 0 var(--size-10);
+  border: var(--size-1) solid var(--shell-border);
+  border-radius: var(--space-2);
+  color: var(--shell-text);
+  background: var(--shell-panel-2);
+  font-size: var(--size-11);
+}
+.month-multiselect__trigger:hover,
+.month-multiselect__trigger:focus-visible {
+  border-color: var(--shell-primary);
+}
+.month-multiselect__trigger span {
+  color: var(--shell-muted);
+  font-variant-numeric: tabular-nums;
+}
+.month-multiselect__menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + var(--size-6));
+  right: 0;
+  width: var(--size-220);
+  max-height: var(--size-310);
+  overflow-y: auto;
+  padding: var(--size-6);
+  border: var(--size-1) solid var(--shell-border);
+  border-radius: var(--space-3);
+  background: var(--shell-panel);
+  box-shadow: 0 var(--space-3-5) var(--space-8) var(--shadow-popover);
+}
+.month-multiselect__option {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: var(--space-2);
+  align-items: center;
+  gap: var(--size-9);
+  padding: var(--size-9) var(--size-10);
+  border-radius: var(--space-2);
+  color: var(--shell-secondary);
+  cursor: pointer;
+  font-size: var(--size-11);
+}
+.month-multiselect__option:hover {
+  color: var(--shell-text);
+  background: var(--overlay-primary-muted);
+}
+.month-multiselect__option input {
+  width: var(--size-13);
+  height: var(--size-13);
+  margin: 0;
+  accent-color: var(--shell-primary);
 }
 .monthly-expense-comparison__legend {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(var(--size-150), 1fr));
   gap: var(--space-2);
   margin-top: var(--space-5);
 }
 .monthly-expense-comparison__legend button {
   display: flex;
+  width: 100%;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
@@ -2429,19 +2482,11 @@ h3 {
   color: var(--shell-text);
   background: var(--shell-panel-2);
   cursor: pointer;
-  transition:
-    border-color var(--duration-fast) var(--ease-standard),
-    opacity var(--duration-fast) var(--ease-standard);
+  transition: border-color var(--duration-fast) var(--ease-standard);
 }
 .monthly-expense-comparison__legend button:hover,
 .monthly-expense-comparison__legend button:focus-visible {
   border-color: var(--shell-primary);
-}
-.monthly-expense-comparison__legend button.is-hidden {
-  opacity: 0.48;
-}
-.monthly-expense-comparison__legend button:disabled {
-  cursor: not-allowed;
 }
 .monthly-expense-comparison__legend span {
   display: inline-flex;
@@ -4504,9 +4549,16 @@ tbody tr:hover {
   .monthly-expense-comparison .section__title-row {
     flex-direction: column;
   }
-  .monthly-expense-comparison__filters {
+  .month-multiselect {
+    align-self: stretch;
+  }
+  .month-multiselect__trigger {
     width: 100%;
     justify-content: flex-start;
+  }
+  .month-multiselect__menu {
+    right: auto;
+    left: 0;
   }
   .summary,
   .analytics__metrics {
@@ -4717,9 +4769,6 @@ tbody tr:hover {
   .labels__grid {
     grid-template-columns: 1fr;
   }
-  .monthly-expense-comparison__legend {
-    grid-template-columns: 1fr;
-  }
   .balance {
     min-height: var(--space-45);
   }
@@ -4789,6 +4838,15 @@ tbody tr:hover {
   --ts-chart-tooltip-padding: var(--size-10) var(--size-12);
   --ts-chart-tooltip-border-radius: var(--space-2);
   animation: chart-reveal var(--chart-reveal-duration) both;
+}
+.chart__empty {
+  display: grid;
+  min-height: var(--space-62);
+  place-items: center;
+  margin: var(--space-2) 0 0;
+  color: var(--shell-muted);
+  font-size: var(--size-11);
+  text-align: center;
 }
 .chart__container .ts-chart-host,
 .chart__container .ts-chart-surface,

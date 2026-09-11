@@ -441,6 +441,10 @@ export function MonthlyExpenseComparisonChart({
     [maxDay, rows, series],
   )
 
+  if (series.length === 0) {
+    return <p className="chart__empty">{t('analytics.selectAtLeastOneComparisonMonth')}</p>
+  }
+
   return (
     <div className="chart__container chart--monthly-expense-comparison">
       <Chart

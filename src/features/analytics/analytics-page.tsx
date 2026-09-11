@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   endOfMonth,
@@ -107,7 +107,8 @@ export function AnalyticsPage() {
   const [comparisonMonths, setComparisonMonths] = useState(() =>
     Array.from({ length: 3 }, (_, index) => format(subMonths(new Date(), index), 'yyyy-MM')),
   )
-  const [visibleComparisonSeries, setVisibleComparisonSeries] = useState([true, true, true])
+  const [comparisonMonthPickerOpen, setComparisonMonthPickerOpen] = useState(false)
+  const comparisonMonthPickerRef = useRef<HTMLDivElement>(null)
   const expenseMonthDate = new Date(`${expenseMonth}-01T12:00:00`)
   const expenseMonthStart = format(startOfMonth(expenseMonthDate), 'yyyy-MM-dd')
   const expenseMonthEnd = format(endOfMonth(expenseMonthDate), 'yyyy-MM-dd')
@@ -137,40 +138,59 @@ export function AnalyticsPage() {
       }),
     [],
   )
+  const comparisonMonthOptions = useMemo<SelectOption[]>(
+    () =>
+      Array.from({ length: 24 }, (_, index) => {
+        const date = subMonths(new Date(), index)
+        return {
+          value: format(date, 'yyyy-MM'),
+          label: format(date, 'LLLL yyyy', { locale: hr }).replace(/^./, (letter) =>
+            letter.toUpperCase(),
+          ),
+        }
+      }),
+    [],
+  )
   const expenseMonthLabel =
     expenseMonthOptions.find((option) => option.value === expenseMonth)?.label ?? expenseMonth
   const comparisonSeries = useMemo(
     () =>
       comparisonMonths.map((month, index) => ({
         month,
-        label: expenseMonthOptions.find((option) => option.value === month)?.label ?? month,
-        color: ['var(--shell-primary)', 'var(--shell-income)', 'var(--shell-warning)'][index],
+        label: comparisonMonthOptions.find((option) => option.value === month)?.label ?? month,
+        color: `hsl(${(Number(month.replace('-', '')) * 47) % 360}deg 70% 48%)`,
         transactions: comparisonExpenseTransactions[index]?.data ?? [],
       })),
-    [comparisonExpenseTransactions, comparisonMonths, expenseMonthOptions],
-  )
-  const visibleComparisonChartSeries = useMemo(
-    () => comparisonSeries.filter((_, index) => visibleComparisonSeries[index]),
-    [comparisonSeries, visibleComparisonSeries],
+    [comparisonExpenseTransactions, comparisonMonthOptions, comparisonMonths],
   )
 
-  const selectComparisonMonth = (index: number, month: string) => {
-    setComparisonMonths((current) => {
-      const matchingIndex = current.indexOf(month)
-      if (matchingIndex === index) return current
-
-      return current.map((currentMonth, currentIndex) => {
-        if (currentIndex === index) return month
-        return currentIndex === matchingIndex ? current[index] : currentMonth
-      })
-    })
-  }
-
-  const toggleComparisonSeries = (index: number) => {
-    setVisibleComparisonSeries((current) =>
-      current.map((isVisible, currentIndex) => (currentIndex === index ? !isVisible : isVisible)),
+  const toggleComparisonMonth = (month: string) => {
+    setComparisonMonths((current) =>
+      current.includes(month)
+        ? current.filter((selectedMonth) => selectedMonth !== month)
+        : [...current, month],
     )
   }
+
+  useEffect(() => {
+    if (!comparisonMonthPickerOpen) return
+
+    const closePicker = (event: PointerEvent) => {
+      if (!comparisonMonthPickerRef.current?.contains(event.target as Node)) {
+        setComparisonMonthPickerOpen(false)
+      }
+    }
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setComparisonMonthPickerOpen(false)
+    }
+
+    document.addEventListener('pointerdown', closePicker)
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.removeEventListener('pointerdown', closePicker)
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [comparisonMonthPickerOpen])
   const categoryBreakdown = data?.categoryBreakdown ?? []
   const visibleCategoryBreakdown = useMemo(() => {
     const selectedCategories = categoryBreakdown.filter(
@@ -283,46 +303,57 @@ export function AnalyticsPage() {
           <h3>{t('analytics.expenseComparison')}</h3>
           <p>{t('analytics.expenseComparisonDescription')}</p>
         </div>
-        <div className="monthly-expense-comparison__filters">
-          {comparisonMonths.map((month, index) => (
-            <div className="chart__filter" key={index}>
-              <label
-                className="route-loading__sr-only"
-                htmlFor={`analytics-comparison-month-${index}`}
-              >
-                {t('analytics.expenseComparisonMonthFilter', { number: index + 1 })}
-              </label>
-              <AppSelect
-                value={month}
-                options={expenseMonthOptions}
-                onChange={(value) => selectComparisonMonth(index, value)}
-                placeholder={t('common.month')}
-                inputId={`analytics-comparison-month-${index}`}
-              />
+        <div className="month-multiselect" ref={comparisonMonthPickerRef}>
+          <button
+            className="month-multiselect__trigger"
+            type="button"
+            aria-haspopup="dialog"
+            aria-expanded={comparisonMonthPickerOpen}
+            aria-controls="analytics-comparison-months"
+            onClick={() => setComparisonMonthPickerOpen((isOpen) => !isOpen)}
+          >
+            <Icon name="calendar-days" size={15} />
+            {t('analytics.selectComparisonMonths')}
+            <span>{t('analytics.selectedMonthsCount', { count: comparisonMonths.length })}</span>
+            <Icon name="chevron-down" size={15} />
+          </button>
+          {comparisonMonthPickerOpen && (
+            <div
+              className="month-multiselect__menu"
+              id="analytics-comparison-months"
+              role="dialog"
+              aria-label={t('analytics.selectComparisonMonths')}
+            >
+              {comparisonMonthOptions.map((option) => (
+                <label className="month-multiselect__option" key={option.value}>
+                  <input
+                    type="checkbox"
+                    checked={comparisonMonths.includes(option.value)}
+                    onChange={() => toggleComparisonMonth(option.value)}
+                  />
+                  <span>{option.label}</span>
+                </label>
+              ))}
             </div>
-          ))}
+          )}
         </div>
       </div>
       <div
         className="monthly-expense-comparison__legend"
         aria-label={t('analytics.expenseComparison')}
       >
-        {comparisonSeries.map((series, index) => {
+        {comparisonSeries.map((series) => {
           const total = series.transactions.reduce(
             (sum, transaction) => sum + transaction.amountBase,
             0,
           )
-          const isVisible = visibleComparisonSeries[index]
 
           return (
             <button
-              className={!isVisible ? 'is-hidden' : undefined}
               type="button"
               key={series.month}
-              aria-pressed={isVisible}
-              aria-label={t('analytics.toggleExpenseComparisonMonth', { month: series.label })}
-              onClick={() => toggleComparisonSeries(index)}
-              disabled={isVisible && visibleComparisonSeries.filter(Boolean).length === 1}
+              aria-label={t('analytics.removeExpenseComparisonMonth', { month: series.label })}
+              onClick={() => toggleComparisonMonth(series.month)}
             >
               <span>
                 <i className="chart__legend-dot" style={{ backgroundColor: series.color }} />
@@ -334,7 +365,7 @@ export function AnalyticsPage() {
         })}
       </div>
       <MonthlyExpenseComparisonChart
-        series={visibleComparisonChartSeries}
+        series={comparisonSeries}
         ariaLabel={t('analytics.expenseComparison')}
       />
     </article>
@@ -347,7 +378,18 @@ export function AnalyticsPage() {
           <h3>{t('analytics.spendingHeatmap')}</h3>
           <p>{t('analytics.spendingHeatmapDescription')}</p>
         </div>
-        <span className="chart__total">{expenseMonthLabel}</span>
+        <div className="chart__filter">
+          <label className="route-loading__sr-only" htmlFor="analytics-heatmap-month">
+            {t('dashboard.expenseMonthFilter')}
+          </label>
+          <AppSelect
+            value={expenseMonth}
+            options={expenseMonthOptions}
+            onChange={setExpenseMonth}
+            placeholder={t('common.month')}
+            inputId="analytics-heatmap-month"
+          />
+        </div>
       </div>
       <SpendingHeatmapChart
         transactions={dailyExpenseTransactions.data ?? []}
