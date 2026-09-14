@@ -1,7 +1,9 @@
+'use client'
+
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { useNavigate } from 'react-router-dom'
+import { useRouter } from 'next/navigation'
 import { toast } from 'react-toastify'
 import { z } from 'zod'
 import { supabase } from '../../lib/supabase'
@@ -17,7 +19,7 @@ const schema = z.object({
 
 export function AuthPage() {
   const [register, setRegister] = useState(false)
-  const navigate = useNavigate()
+  const router = useRouter()
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     mode: 'onBlur',
@@ -40,7 +42,7 @@ export function AuthPage() {
       )
     }
     toast.success(register ? t('auth.accountCreated') : t('auth.welcomeToast'))
-    navigate('/dashboard', { viewTransition: true })
+    router.push('/dashboard')
   }
   return (
     <div className="auth-shell">

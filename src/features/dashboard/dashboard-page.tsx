@@ -1,5 +1,7 @@
+'use client'
+
 import { useEffect, useMemo, useRef } from 'react'
-import { Link } from 'react-router-dom'
+import Link from 'next/link'
 import { endOfMonth, format, startOfMonth, subMonths } from 'date-fns'
 import { hr } from 'date-fns/locale'
 import { useDashboardQueries } from '../../hooks/use-dashboard-queries'
@@ -248,7 +250,7 @@ export function DashboardPage() {
               <h3>{t('dashboard.cashFlow')}</h3>
               <p>{t('dashboard.cashFlowDescription')}</p>
             </div>
-            <Link className="link" to="/analytics" viewTransition>
+            <Link className="link" href="/analytics">
               {t('dashboard.details')} <Icon name="chevron-right" size={14} />
             </Link>
           </div>
@@ -274,7 +276,7 @@ export function DashboardPage() {
                 {t('common.total')} {formatCurrency(data?.expenses ?? 0)}
               </p>
             </div>
-            <Link className="link" to="/analytics" viewTransition>
+            <Link className="link" href="/analytics">
               {t('dashboard.analytics')} <Icon name="chevron-right" size={14} />
             </Link>
           </div>
@@ -298,13 +300,13 @@ export function DashboardPage() {
               <h3>{t('dashboard.myAccounts')}</h3>
               <p>{t('dashboard.activeAccounts', { count: accounts.data?.length ?? 0 })}</p>
             </div>
-            <Link className="link" to="/accounts" viewTransition>
+            <Link className="link" href="/accounts">
               {t('dashboard.manage')} <Icon name="chevron-right" size={14} />
             </Link>
           </div>
           <div className="accounts__list">
             {(accounts.data ?? []).map((account) => (
-              <Link className="accounts__row" to="/accounts" key={account.id} viewTransition>
+              <Link className="accounts__row" href="/accounts" key={account.id}>
                 <span className="accounts__row-icon" style={{ color: account.color }}>
                   <Icon
                     name={
@@ -336,7 +338,7 @@ export function DashboardPage() {
               <h3>{t('dashboard.upcomingExpenses')}</h3>
               <p>{t('dashboard.upcomingDescription')}</p>
             </div>
-            <Link className="link" to="/recurring" viewTransition>
+            <Link className="link" href="/recurring">
               {t('dashboard.all')} <Icon name="chevron-right" size={14} />
             </Link>
           </div>
@@ -371,7 +373,7 @@ export function DashboardPage() {
             <h3>{t('dashboard.recentTransactions')}</h3>
             <p>{t('dashboard.recentDescription')}</p>
           </div>
-          <Link className="link" to="/transactions" viewTransition>
+          <Link className="link" href="/transactions">
             {t('dashboard.viewAll')} <Icon name="chevron-right" size={14} />
           </Link>
         </div>
@@ -379,9 +381,8 @@ export function DashboardPage() {
           {(transactions.data ?? []).slice(0, 5).map((transaction) => (
             <Link
               className="recent__row"
-              to={`/transactions?search=${encodeURIComponent(transaction.description)}`}
+              href={`/transactions?search=${encodeURIComponent(transaction.description)}`}
               key={transaction.id}
-              viewTransition
             >
               <span className={`transaction-glyph transaction-glyph--${transaction.type}`}>
                 <Icon

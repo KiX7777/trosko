@@ -1,3 +1,5 @@
+'use client'
+
 import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   endOfMonth,
@@ -21,7 +23,7 @@ import {
   type SortingState,
 } from '@tanstack/react-table'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { useSearchParams } from 'react-router-dom'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'react-toastify'
 import { useAccountsQuery } from '../../hooks/use-account-queries'
 import { useCategoriesQuery } from '../../hooks/use-category-queries'
@@ -133,7 +135,17 @@ function getDateQuickFilterRange(filter: DateQuickFilter, referenceDate = new Da
 }
 
 export function TransactionsPage() {
-  const [searchParams, setSearchParams] = useSearchParams()
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const setSearchParams = (
+    next: URLSearchParams | Record<string, string>,
+    options?: { replace?: boolean },
+  ) => {
+    const query = (next instanceof URLSearchParams ? next : new URLSearchParams(next)).toString()
+    const href = query ? `/transactions?${query}` : '/transactions'
+    if (options?.replace) router.replace(href)
+    else router.push(href)
+  }
   const [sorting, setSorting] = useState<SortingState>([{ id: 'transactionDate', desc: true }])
   const [selected, setSelected] = useState<Record<string, boolean>>({})
   const [activeTransactionId, setActiveTransactionId] = useState<string | null>(null)

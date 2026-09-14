@@ -1,5 +1,5 @@
 import Select, { type StylesConfig } from 'react-select'
-import type { ReactNode } from 'react'
+import { useId, type ReactNode } from 'react'
 
 export type SelectOption = {
   label: string
@@ -83,10 +83,12 @@ export function AppSelect({
   isClearable?: boolean
   formatOptionLabel?: (option: SelectOption) => ReactNode
 }) {
+  const instanceId = useId()
   const selectedOption = options.find((option) => option.value === value) ?? null
 
   return (
     <Select<SelectOption, false>
+      instanceId={instanceId}
       classNamePrefix="app-select"
       className={invalid ? 'field--invalid' : undefined}
       value={selectedOption}

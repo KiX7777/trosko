@@ -10,7 +10,7 @@ export async function parseReceipt(file: File): Promise<OcrResult> {
   const formData = new FormData()
   formData.append('file', file)
 
-  const response = await fetch(`${import.meta.env.VITE_API_URL ?? ''}/api/ocr/parse`, {
+  const response = await fetch('/api/ocr/parse', {
     method: 'POST',
     body: formData,
   })

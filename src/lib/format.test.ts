@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from '@jest/globals'
 import { formatCurrency, formatDate, formatSignedCurrency } from './format'
 
 describe('Troško formatting', () => {

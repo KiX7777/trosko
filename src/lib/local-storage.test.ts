@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from '@jest/globals'
 import { LocalStorageService } from './local-storage'
 
 describe('LocalStorageService', () => {

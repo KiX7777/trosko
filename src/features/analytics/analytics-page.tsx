@@ -1,5 +1,8 @@
+'use client'
+
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   endOfMonth,
   endOfWeek,
@@ -90,7 +93,7 @@ function useCompactDatePicker() {
 
 export function AnalyticsPage() {
   const [activeTab, setActiveTab] = useState<AnalyticsTab>(tabs[0])
-  const navigate = useNavigate()
+  const router = useRouter()
   const defaultRange = useMemo<DateRange>(
     () => ({ from: subMonths(new Date(), 1), to: new Date() }),
     [],
@@ -449,7 +452,7 @@ export function AnalyticsPage() {
               ? t('common.all')
               : t('analytics.selectedCategories', { count: selectedCategoryCount })}
           </button>
-          <Link className="link" to="/categories" viewTransition>
+          <Link className="link" href="/categories">
             {t('analytics.editCategories')} <Icon name="chevron-right" size={14} />
           </Link>
         </div>
@@ -655,7 +658,7 @@ export function AnalyticsPage() {
               className={activeTab === tab ? 'is-active' : ''}
               onClick={() => {
                 if (route) {
-                  navigate(route, { viewTransition: true })
+                  router.push(route)
                   return
                 }
                 setActiveTab(tab)

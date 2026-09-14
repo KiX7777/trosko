@@ -1,3 +1,5 @@
+'use client'
+
 import { useEffect, type PropsWithChildren } from 'react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { ToastContainer } from 'react-toastify'

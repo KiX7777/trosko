@@ -1,12 +1,12 @@
-# Frontend source
+# Application source
 
-The `src/` tree contains the browser application. `main.tsx` registers the PWA service worker and mounts React; `App.tsx` composes routing, providers, and the install prompt.
+The `src/` tree contains the Next.js application. `app/layout.tsx` owns global metadata, styles, and providers; route folders under `app/` map directly to URLs.
 
 ## Source map
 
 | Directory     | Responsibility                                                            |
 | ------------- | ------------------------------------------------------------------------- |
-| `app/`        | Router and global providers.                                              |
+| `app/`        | App Router pages, layouts, API routes, and global providers.              |
 | `components/` | App shell and reusable visual controls.                                   |
 | `features/`   | Route-level product functionality.                                        |
 | `hooks/`      | TanStack Query reads, mutations, keys, and cache invalidation.            |
@@ -15,7 +15,8 @@ The `src/` tree contains the browser application. `main.tsx` registers the PWA s
 | `stores/`     | Zustand state for UI-only concerns.                                       |
 | `styles/`     | Additional feature CSS, currently receipt-specific styling.               |
 | `types/`      | Shared TypeScript domain contracts.                                       |
-| `test/`       | Vitest setup.                                                             |
+| `server/`     | Server-only OCR parsing shared by Next.js API routes.                     |
+| `test/`       | Jest setup.                                                               |
 
 The top-level `styles.css` is the main global stylesheet. It owns the design tokens, layout system, responsive behavior, and most component styles; `styles/` contains deliberately isolated additions.
 
@@ -25,4 +26,4 @@ Feature pages should call hooks. Hooks should call repository functions. The rep
 
 ## Adding a feature
 
-Create a route-level page under `features/<name>/`, add its route in `app/router.tsx`, add query hooks under `hooks/`, and add any durable domain changes to both `types/domain.ts` and the Supabase migration. Add Croatian strings before wiring the UI and document the new feature in `features/README.md`.
+Create a route-level page under `features/<name>/`, add a matching `app/(protected)/<name>/page.tsx` entry, add query hooks under `hooks/`, and add any durable domain changes to both `types/domain.ts` and the Supabase migration. Add Croatian strings before wiring the UI and document the new feature in `features/README.md`.

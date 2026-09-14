@@ -4,7 +4,7 @@ This directory contains code that is shared across features but is not itself a 
 
 - `repository.ts` is the persistence abstraction. It maps Supabase rows to domain objects and provides a `localStorage` demo implementation, including receipt metadata and receipt-to-transaction links.
 - `mock-data.ts` contains the initial demo profile, accounts, categories, labels, recurring records, transactions, and summary.
-- `supabase.ts` creates a client only when the two Vite Supabase variables are present.
+- `supabase.ts` creates a client only when the two `NEXT_PUBLIC_` Supabase variables are present.
 - `query-client.ts` configures the shared TanStack Query client.
 - `format.ts` centralizes Croatian date, currency, and number display.
 - `local-storage.ts` provides safe JSON read, write, and removal for browser-only UI preferences.

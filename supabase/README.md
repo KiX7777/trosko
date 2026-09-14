@@ -1,6 +1,6 @@
 # Supabase persistence
 
-Supabase is the optional production persistence and authentication layer. The browser uses the publishable key, while the NestJS recurring worker uses a server-only service-role key.
+Supabase is the optional production persistence and authentication layer. The browser uses the publishable key, while the Next.js recurring API route uses a server-only service-role key.
 
 ## Migrations
 
@@ -17,4 +17,4 @@ The browser repository scopes queries to the current user as an additional appli
 
 ## Local/demo behavior
 
-If `VITE_SUPABASE_URL` or `VITE_SUPABASE_PUBLISHABLE_KEY` is absent, the frontend does not initialize Supabase and uses `src/lib/repository.ts`'s local implementation. This is useful for design review and development but is not multi-user storage.
+If `NEXT_PUBLIC_SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` is absent, the frontend does not initialize Supabase and uses `src/lib/repository.ts`'s local implementation. This is useful for design review and development but is not multi-user storage.

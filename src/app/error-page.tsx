@@ -1,6 +1,7 @@
+'use client'
+
 import type { FallbackProps } from 'react-error-boundary'
 import { AlertTriangle, House, RefreshCw } from 'lucide-react'
-import { isRouteErrorResponse, useRouteError } from 'react-router-dom'
 
 type ErrorDetails = {
   code?: number
@@ -9,17 +10,17 @@ type ErrorDetails = {
 }
 
 function getErrorDetails(error: unknown): ErrorDetails {
-  if (isRouteErrorResponse(error)) {
-    if (error.status === 404) {
+  if (typeof error === 'object' && error !== null && 'status' in error) {
+    const status = Number(error.status)
+    if (status === 404) {
       return {
-        code: error.status,
+        code: status,
         title: 'Stranica nije pronađena',
         description: 'Adresa koju ste otvorili ne postoji ili je premještena.',
       }
     }
-
     return {
-      code: error.status,
+      code: Number.isFinite(status) ? status : undefined,
       title: 'Nije moguće otvoriti ovu stranicu',
       description: 'Dogodila se poteškoća pri učitavanju. Pokušajte ponovno za koji trenutak.',
     }
@@ -72,10 +73,10 @@ function ErrorPageContent({ error }: { error: unknown }) {
   )
 }
 
-export function RouteErrorPage() {
-  return <ErrorPageContent error={useRouteError()} />
-}
-
 export function ApplicationErrorPage({ error }: FallbackProps) {
   return <ErrorPageContent error={error} />
+}
+
+export function NotFoundPage() {
+  return <ErrorPageContent error={{ status: 404 }} />
 }

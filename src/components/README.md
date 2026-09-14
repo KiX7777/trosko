@@ -1,6 +1,6 @@
 # Shared components
 
-Shared components are cross-feature building blocks. `app-shell.tsx` owns the authenticated navigation frame, desktop sidebar, mobile navigation, profile menu, quick-add entry point, and page outlet. `pwa-install-prompt.tsx` owns the browser install affordance.
+Shared components are cross-feature building blocks. `app-shell.tsx` owns the authenticated navigation frame, desktop sidebar, mobile navigation, profile menu, quick-add entry point, and page content frame.
 
 The `ui/` subdirectory contains presentational primitives. A component belongs here when it has stable behavior and can be reused by multiple features. Keep feature-specific orchestration in the corresponding feature directory.
 

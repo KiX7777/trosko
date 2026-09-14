@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, jest } from '@jest/globals'
 import { DASHBOARD_BALANCE_ACCOUNT_FILTER_KEY, useDashboardStore } from './dashboard-store'
 
 describe('dashboard store', () => {
@@ -29,7 +29,7 @@ describe('dashboard store', () => {
 
   it('loads a saved balance filter when the store starts', async () => {
     localStorage.setItem(DASHBOARD_BALANCE_ACCOUNT_FILTER_KEY, JSON.stringify(['account-cash']))
-    vi.resetModules()
+    jest.resetModules()
 
     const { useDashboardStore: hydratedDashboardStore } = await import('./dashboard-store')
 

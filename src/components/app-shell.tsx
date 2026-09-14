@@ -1,5 +1,16 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+'use client'
+
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type PropsWithChildren,
+} from 'react'
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 import { useUIStore } from '../stores/ui-store'
 import { Icon } from './ui/icon'
 import { Button } from './ui/button'
@@ -35,15 +46,27 @@ function supportsNativeViewTransitions() {
   )
 }
 
-export function AppShell() {
+function subscribeToNativeViewTransitions() {
+  return () => {}
+}
+
+function nativeViewTransitionsUnavailableOnServer() {
+  return false
+}
+
+export function AppShell({ children }: PropsWithChildren) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const profileMenuRef = useRef<HTMLDivElement>(null)
-  const location = useLocation()
-  const navigate = useNavigate()
-  const nativeViewTransitionsAvailable = supportsNativeViewTransitions()
+  const pathname = usePathname()
+  const router = useRouter()
+  const nativeViewTransitionsAvailable = useSyncExternalStore(
+    subscribeToNativeViewTransitions,
+    supportsNativeViewTransitions,
+    nativeViewTransitionsUnavailableOnServer,
+  )
   const openQuickAdd = useUIStore((state) => state.openQuickAdd)
-  const current = [...primaryNav, ...secondaryNav].find((item) => location.pathname === item.to)
+  const current = [...primaryNav, ...secondaryNav].find((item) => pathname === item.to)
   const profile = useProfileQuery()
   const displayName = profile.data?.displayName || profile.data?.email || t('common.user')
   const initials = displayName
@@ -81,7 +104,7 @@ export function AppShell() {
     } else {
       localStorage.removeItem('trosko-demo-session')
     }
-    navigate('/login', { replace: true, viewTransition: true })
+    router.replace('/login')
   }
 
   return (
@@ -176,8 +199,8 @@ export function AppShell() {
         <main
           className={`app__content${nativeViewTransitionsAvailable ? '' : ' app__content--fallback'}`}
         >
-          <div className="page-transition" key={location.pathname}>
-            <Outlet />
+          <div className="page-transition" key={pathname}>
+            {children}
           </div>
         </main>
       </div>
@@ -195,17 +218,16 @@ export function AppShell() {
         {primaryNav.slice(3, 4).map((item) => (
           <NavItem key={item.to} item={item} mobile />
         ))}
-        <NavLink
+        <Link
           className="mobile-nav__item"
-          to="/settings"
-          viewTransition
+          href="/settings"
           onClick={(event) => {
-            if (location.pathname === '/settings') event.preventDefault()
+            if (pathname === '/settings') event.preventDefault()
           }}
         >
           <Icon name="more" size={18} />
           <span>{t('nav.more')}</span>
-        </NavLink>
+        </Link>
       </nav>
       <Suspense fallback={null}>
         <QuickAddModal />
@@ -223,17 +245,14 @@ function NavItem({
   mobile?: boolean
   onClick?: () => void
 }) {
-  const location = useLocation()
+  const pathname = usePathname()
 
   return (
-    <NavLink
-      className={({ isActive }) =>
-        `${mobile ? 'mobile-nav__item' : 'sidebar__link'} ${isActive ? 'is-active' : ''}`
-      }
-      to={item.to}
-      viewTransition
+    <Link
+      className={`${mobile ? 'mobile-nav__item' : 'sidebar__link'} ${pathname === item.to ? 'is-active' : ''}`}
+      href={item.to}
       onClick={(event) => {
-        if (location.pathname === item.to) {
+        if (pathname === item.to) {
           event.preventDefault()
         }
         onClick?.()
@@ -241,6 +260,6 @@ function NavItem({
     >
       <Icon name={item.icon} size={18} />
       <span>{mobile && item.key === 'nav.dashboard' ? t('nav.home') : t(item.key)}</span>
-    </NavLink>
+    </Link>
   )
 }

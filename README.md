@@ -1,15 +1,15 @@
 # Troško
 
-Troško is a responsive personal-finance progressive web app (PWA) for recording spending, monitoring cash flow, and understanding where money goes. The interface is Croatian-first, uses EUR-oriented demo data, and is designed to work immediately in a browser without a backend. When Supabase is configured, the same repository layer switches to authenticated, cloud-backed data.
+Troško is a responsive personal-finance web app for recording spending, monitoring cash flow, and understanding where money goes. The interface is Croatian-first, uses EUR-oriented demo data, and is designed to work immediately in a browser without a separately deployed backend. When Supabase is configured, the same repository layer switches to authenticated, cloud-backed data.
 
 The project includes:
 
-- a React + TypeScript browser application built with Vite;
+- a Next.js App Router application with TypeScript;
 - a local demo mode backed by browser `localStorage`;
 - optional Supabase Auth, Postgres, Row Level Security, and Storage integration;
-- an optional NestJS service for receipt OCR, PDF exports, exchange rates, and recurring-transaction processing;
-- a PWA manifest, install prompt, service worker, and API runtime caching;
-- unit and component tests with Vitest and Testing Library.
+- Next.js API routes for receipt OCR, PDF exports, exchange rates, and recurring-transaction processing;
+- a web app manifest served by Next.js;
+- unit and component tests with Jest and Testing Library.
 
 ## What the app does
 
@@ -47,9 +47,7 @@ Browser
   ├─ Repository boundary
   │    ├─ Supabase Auth/Postgres/Storage when configured
   │    └─ localStorage demo repository otherwise
-  └─ PWA service worker and install prompt
-
-Optional NestJS server (`:3001`)
+  └─ Next.js API routes
   ├─ POST /api/ocr/parse
   ├─ GET  /api/export/pdf
   ├─ GET  /api/exchange-rates
@@ -68,8 +66,8 @@ The frontend is deliberately insulated from the persistence choice. UI code call
 
 ### Prerequisites
 
-- Node.js with npm.
-- A modern browser. Chrome, Edge, Firefox, and Safari are suitable for the client; receipt OCR and the NestJS service are server-side concerns.
+- Node.js 22.12 or newer with npm.
+- A modern browser. Chrome, Edge, Firefox, and Safari are suitable for the client; receipt OCR runs in the Node.js Next.js runtime.
 
 ### Install and run the client
 
@@ -78,22 +76,7 @@ npm install
 npm run dev
 ```
 
-Open `http://127.0.0.1:5173/`. With no environment variables, the app starts in demo mode. Demo records are initialized from `src/lib/mock-data.ts` and subsequent changes are persisted under the `trosko-db:` `localStorage` namespace.
-
-### Run the optional API server
-
-In a second terminal:
-
-```bash
-npm run server:dev
-```
-
-The Vite development server proxies `/api` requests to `http://127.0.0.1:3001`. Run the production-shaped server with:
-
-```bash
-npm run build:server
-npm run server:start
-```
+Open `http://127.0.0.1:3000/`. With no environment variables, the app starts in demo mode. Demo records are initialized from `src/lib/mock-data.ts` and subsequent changes are persisted under the `trosko-db:` `localStorage` namespace. API routes run from the same Next.js process, so no second server or development proxy is needed.
 
 The OCR service may download Croatian and English Tesseract language data on first use. For an offline deployment, set `OCR_LANG_PATH` to a local tessdata directory.
 
@@ -102,8 +85,8 @@ The OCR service may download Croatian and English Tesseract language data on fir
 Create `.env.local` from `.env.example`:
 
 ```dotenv
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ```
 
 Apply both migrations in `supabase/migrations/` and create a Storage bucket named `receipts`. The initial migration creates the application schema, indexes, grants, ownership RLS policies, and receipt-storage policies. The second migration adds automatic recurring-transaction processing.
@@ -117,13 +100,13 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-server-only-service-role-key
 ```
 
-Never expose `SUPABASE_SERVICE_ROLE_KEY` to the Vite client or commit it to the repository.
+Never expose `SUPABASE_SERVICE_ROLE_KEY` to the browser or commit it to the repository.
 
 More database-specific notes are in [`supabase/README.md`](supabase/README.md).
 
 ## Server API
 
-The NestJS application has a global `/api` prefix.
+All endpoints are Next.js route handlers under `src/app/api/` and run in the same deployment as the UI.
 
 ### `POST /api/ocr/parse`
 
@@ -139,7 +122,7 @@ Uses `EXCHANGE_RATES_ENDPOINT` when configured. If the provider is unavailable o
 
 ### `POST /api/recurring/process`
 
-Runs the Supabase RPC that creates due auto-log transactions and advances the next run date. The same operation is scheduled by NestJS at 05:00 every day. If worker credentials are missing, the endpoint returns a skipped result rather than failing startup.
+Runs the Supabase RPC that creates due auto-log transactions and advances the next run date. Vercel calls this route every day at 05:00 UTC through the `vercel.json` configuration. Set a random `CRON_SECRET` (at least 16 characters) in Vercel's Production environment; Vercel automatically sends it as a Bearer token and the route rejects all requests without a matching token. Cron jobs run only in production deployments. If worker credentials are missing, the endpoint returns a skipped result rather than failing startup.
 
 ## Data and business rules
 
@@ -154,9 +137,9 @@ Runs the Supabase RPC that creates due auto-log transactions and advances the ne
 
 The canonical client-side domain types live in [`src/types/domain.ts`](src/types/domain.ts), while the database schema and RLS policy source lives in [`supabase/migrations/20260907000000_initial_expense_tracker.sql`](supabase/migrations/20260907000000_initial_expense_tracker.sql).
 
-## PWA behavior
+## Web app manifest
 
-`vite-plugin-pwa` generates the service worker and manifest. The app is installable in standalone mode, uses the Croatian document language, and prompts users when the browser exposes an install opportunity. API requests use a network-first runtime cache with a five-second network timeout. The client also checks for service-worker updates when the page becomes visible and on a one-minute interval.
+Next.js serves the Croatian web app manifest from `src/app/manifest.ts`. Add a Next-compatible service-worker integration if offline caching or an install prompt is required for deployment.
 
 ## Internationalization and formatting
 
@@ -182,10 +165,10 @@ npm run typecheck
 npm run test
 npm run lint
 npm run format:check
-npm run build:all
+npm run build
 ```
 
-`npm run build:all` builds both the Vite client and the NestJS server. The test suite includes formatting/i18n helpers, repository behavior, currency input behavior, and OCR parser coverage.
+`npm run build` builds the Next.js application and its API routes. The test suite includes formatting/i18n helpers, repository behavior, currency input behavior, and OCR parser coverage.
 
 ## Documentation map
 
@@ -202,9 +185,8 @@ Each major source area has its own local guide:
 - [`src/stores/README.md`](src/stores/README.md) — client-only UI state.
 - [`src/styles/README.md`](src/styles/README.md) — design tokens, layout, and CSS ownership.
 - [`src/types/README.md`](src/types/README.md) — shared domain contracts.
-- [`server/README.md`](server/README.md) — NestJS boundary and deployment notes.
 - [`supabase/README.md`](supabase/README.md) — migrations, RLS, Storage, and worker setup.
 
 ## License and product status
 
-This repository does not currently declare a license. Treat it as an internal or experimental application unless a separate project policy says otherwise. The local demo path is complete enough for exploration; production deployment still requires Supabase project setup, server secrets, operational logging, and a deployment strategy for the API worker.
+This repository does not currently declare a license. Treat it as an internal or experimental application unless a separate project policy says otherwise. The local demo path is complete enough for exploration; production deployment still requires Supabase project setup, server secrets, operational logging, and a cron configuration for recurring processing.

@@ -406,7 +406,7 @@
   "auth.switchToLogin": "Već imaš račun? Prijavi se",
   "auth.switchToRegister": "Nemaš račun? Kreiraj ga",
   "auth.active": "Supabase Auth je aktivan",
-  "auth.demo": "Demo način rada — dodaj VITE_SUPABASE_URL za pravu autentifikaciju",
+  "auth.demo": "Demo način rada — dodaj NEXT_PUBLIC_SUPABASE_URL za pravu autentifikaciju",
   "auth.invalidEmail": "Unesi ispravan email.",
   "auth.passwordMin": "Lozinka mora imati najmanje 6 znakova.",
   "auth.accountCreated": "Račun je kreiran",
