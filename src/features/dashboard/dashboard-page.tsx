@@ -18,6 +18,16 @@ import { t } from '../../lib/i18n'
 import { useDashboardStore } from '../../stores/dashboard-store'
 import type { Period } from '../../types/domain'
 
+function formatPeriodChange(value: number, previousValue: number) {
+  if (previousValue === 0) return t('dashboard.noPreviousPeriodData')
+
+  return new Intl.NumberFormat('hr-HR', {
+    style: 'percent',
+    signDisplay: 'always',
+    maximumFractionDigits: 1,
+  }).format((value - previousValue) / Math.abs(previousValue))
+}
+
 export function DashboardPage() {
   const period = useDashboardStore((state) => state.period)
   const expenseMonth = useDashboardStore((state) => state.expenseMonth)
@@ -49,6 +59,14 @@ export function DashboardPage() {
       selectedBalanceAccountIds === null || selectedBalanceAccountIds.includes(account.id),
   )
   const availableBalance = selectedBalance.reduce((sum, account) => sum + account.balance, 0)
+  const totalActiveBalance = activeAccounts.reduce((sum, account) => sum + account.balance, 0)
+  const balanceProgress =
+    totalActiveBalance === 0
+      ? 0
+      : Math.min(Math.max((availableBalance / totalActiveBalance) * 100, 0), 100)
+  const balanceProgressLabel = new Intl.NumberFormat('hr-HR', {
+    maximumFractionDigits: 1,
+  }).format(balanceProgress)
 
   useEffect(() => {
     if (!isBalanceFilterOpen) return
@@ -174,9 +192,18 @@ export function DashboardPage() {
             </div>
           </div>
           <strong>{formatCurrency(availableBalance)}</strong>
-          <span className="balance__caption">{t('dashboard.updatedNow')}</span>
-          <div className="balance__rail">
-            <span style={{ width: '68%' }} />
+          <span className="balance__caption">
+            {t('dashboard.balanceShare', { percentage: balanceProgressLabel })}
+          </span>
+          <div
+            className="balance__rail"
+            role="progressbar"
+            aria-label={t('dashboard.balanceShare', { percentage: balanceProgressLabel })}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={balanceProgress}
+          >
+            <span style={{ width: `${balanceProgress}%` }} />
           </div>
         </article>
         <MetricCard
@@ -184,21 +211,21 @@ export function DashboardPage() {
           value={data?.income ?? 0}
           icon="arrow-down-right"
           tone="income"
-          delta="+8.4%"
+          delta={formatPeriodChange(data?.income ?? 0, data?.previousIncome ?? 0)}
         />
         <MetricCard
           label={t('common.expenses')}
           value={data?.expenses ?? 0}
           icon="arrow-up-right"
           tone="expense"
-          delta="-3.1%"
+          delta={formatPeriodChange(data?.expenses ?? 0, data?.previousExpenses ?? 0)}
         />
         <MetricCard
           label={t('dashboard.netCashFlow')}
           value={data?.netCashFlow ?? 0}
           icon="trend"
-          tone="income"
-          delta={t('dashboard.thisMonth')}
+          tone={(data?.netCashFlow ?? 0) >= 0 ? 'income' : 'expense'}
+          delta={formatPeriodChange(data?.netCashFlow ?? 0, data?.previousNetCashFlow ?? 0)}
         />
       </section>
 
@@ -296,14 +323,14 @@ export function DashboardPage() {
           <div className="section__title-row">
             <div>
               <h3>{t('dashboard.myAccounts')}</h3>
-              <p>{t('dashboard.activeAccounts', { count: accounts.data?.length ?? 0 })}</p>
+              <p>{t('dashboard.activeAccounts', { count: activeAccounts.length })}</p>
             </div>
             <Link className="link" to="/accounts" viewTransition>
               {t('dashboard.manage')} <Icon name="chevron-right" size={14} />
             </Link>
           </div>
           <div className="accounts__list">
-            {(accounts.data ?? []).map((account) => (
+            {activeAccounts.map((account) => (
               <Link className="accounts__row" to="/accounts" key={account.id} viewTransition>
                 <span className="accounts__row-icon" style={{ color: account.color }}>
                   <Icon
@@ -325,7 +352,7 @@ export function DashboardPage() {
                     {account.currency} • {accountTypeLabel(account.type)}
                   </small>
                 </span>
-                <b>{formatCurrency(account.balance)}</b>
+                <b>{formatCurrency(account.balance, account.currency)}</b>
               </Link>
             ))}
           </div>
@@ -342,7 +369,8 @@ export function DashboardPage() {
           </div>
           <div className="upcoming__list">
             {(recurring.data ?? [])
-              .filter((item) => item.type === 'expense')
+              .filter((item) => item.type === 'expense' && item.active)
+              .sort((a, b) => a.nextRunAt.localeCompare(b.nextRunAt))
               .slice(0, 3)
               .map((item) => (
                 <div className="upcoming__row" key={item.id}>
@@ -357,7 +385,7 @@ export function DashboardPage() {
                   </span>
                   <span className="upcoming__amount">
                     <b>{formatCurrency(item.amount)}</b>
-                    <small>{t('common.soon')}</small>
+                    <small>{formatRelativeDate(`${item.nextRunAt}T12:00:00.000Z`)}</small>
                   </span>
                 </div>
               ))}

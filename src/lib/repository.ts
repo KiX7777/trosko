@@ -331,13 +331,11 @@ function buildSummary(
   accounts: Account[],
   categories: Category[],
   cashFlowRange?: Pick<TransactionFilters, 'dateFrom' | 'dateTo'>,
+  previousTransactions: Transaction[] = [],
 ): DashboardSummary {
-  const expenses = transactions
-    .filter((tx) => tx.type === 'expense')
-    .reduce((sum, tx) => sum + tx.amountBase, 0)
-  const income = transactions
-    .filter((tx) => tx.type === 'income')
-    .reduce((sum, tx) => sum + tx.amountBase, 0)
+  const totals = transactionTotals(transactions)
+  const previousTotals = transactionTotals(previousTransactions)
+  const { expenses, income } = totals
   const categoryTotals = categories
     .filter((category) => category.type === 'expense')
     .map((category) => {
@@ -404,7 +402,9 @@ function buildSummary(
     income,
     expenses,
     netCashFlow: income - expenses,
-    previousNetCashFlow: 0,
+    previousIncome: previousTotals.income,
+    previousExpenses: previousTotals.expenses,
+    previousNetCashFlow: previousTotals.income - previousTotals.expenses,
     cashFlow,
     categoryBreakdown: categoryTotals,
     accountBreakdown,
@@ -414,6 +414,17 @@ function buildSummary(
       .slice(0, 5),
     transactionCount: transactions.length,
   }
+}
+
+function transactionTotals(transactions: Transaction[]) {
+  return transactions.reduce(
+    (totals, transaction) => {
+      if (transaction.type === 'income') totals.income += transaction.amountBase
+      if (transaction.type === 'expense') totals.expenses += transaction.amountBase
+      return totals
+    },
+    { income: 0, expenses: 0 },
+  )
 }
 
 export async function getProfile(): Promise<Profile> {
@@ -1564,14 +1575,34 @@ export async function updateRecurring(input: UpdateRecurringInput): Promise<Recu
   return delay(updated)
 }
 
-function getPeriodStart(period: Period) {
-  const start = new Date()
+function getPeriodDateRange(period: Period) {
+  const end = new Date()
+  const start = new Date(end)
   if (period === '7D') start.setDate(start.getDate() - 6)
   if (period === '1M') start.setMonth(start.getMonth() - 1)
   if (period === '3M') start.setMonth(start.getMonth() - 3)
   if (period === '6M') start.setMonth(start.getMonth() - 6)
   if (period === '1Y') start.setFullYear(start.getFullYear() - 1)
-  return start.toISOString().slice(0, 10)
+  return {
+    dateFrom: format(start, 'yyyy-MM-dd'),
+    dateTo: format(end, 'yyyy-MM-dd'),
+  }
+}
+
+function getPreviousPeriodRange(filters: Pick<TransactionFilters, 'dateFrom' | 'dateTo'>) {
+  if (!filters.dateFrom || !filters.dateTo) return undefined
+
+  const currentStart = parseISO(filters.dateFrom)
+  const currentEnd = parseISO(filters.dateTo)
+  const daysInCurrentPeriod = differenceInCalendarDays(currentEnd, currentStart) + 1
+  if (daysInCurrentPeriod < 1) return undefined
+
+  return {
+    dateFrom: formatISO(addDays(currentStart, -daysInCurrentPeriod), {
+      representation: 'date',
+    }),
+    dateTo: formatISO(addDays(currentStart, -1), { representation: 'date' }),
+  }
 }
 
 export async function getDashboardSummary(
@@ -1579,24 +1610,22 @@ export async function getDashboardSummary(
 ): Promise<DashboardSummary> {
   const filters =
     typeof periodOrFilters === 'string'
-      ? { dateFrom: getPeriodStart(periodOrFilters) }
+      ? getPeriodDateRange(periodOrFilters)
       : periodOrFilters
+  const previousPeriodFilters = getPreviousPeriodRange(filters)
   const cashFlowRange = typeof periodOrFilters === 'string' ? undefined : filters
-  if (supabase) {
-    const [transactions, accounts, categories] = await Promise.all([
-      getTransactions(filters),
-      getAccounts(),
-      getCategories(),
-    ])
-    return buildSummary(transactions, accounts, categories, cashFlowRange)
-  }
-  return delay(
-    buildSummary(
-      applyTransactionFilters(read('transactions', demoTransactions), filters),
-      read('accounts', demoAccounts),
-      read('categories', demoCategories),
-      cashFlowRange,
-    ),
+  const [transactions, previousTransactions, accounts, categories] = await Promise.all([
+    getTransactions(filters),
+    previousPeriodFilters ? getTransactions(previousPeriodFilters) : Promise.resolve([]),
+    getAccounts(),
+    getCategories(),
+  ])
+  return buildSummary(
+    transactions,
+    accounts,
+    categories,
+    cashFlowRange,
+    previousTransactions,
   )
 }
 

@@ -1,3 +1,4 @@
+import { format, subDays } from 'date-fns'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   createReceipt,
@@ -200,6 +201,60 @@ describe('categories', () => {
         }),
       ]),
     )
+  })
+})
+
+describe('dashboard summary comparisons', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    resetDemoData()
+  })
+
+  it('compares income, expenses, and cash flow with the preceding equal period', async () => {
+    localStorage.setItem('trosko-db:transactions', '[]')
+    const date = (daysAgo: number) => format(subDays(new Date(), daysAgo), 'yyyy-MM-dd')
+
+    await createTransaction({
+      accountId: 'account-current',
+      type: 'income',
+      amount: 100,
+      currency: 'EUR',
+      description: 'Tekući prihod',
+      transactionDate: date(0),
+    })
+    await createTransaction({
+      accountId: 'account-current',
+      type: 'expense',
+      amount: 40,
+      currency: 'EUR',
+      description: 'Tekući trošak',
+      transactionDate: date(6),
+    })
+    await createTransaction({
+      accountId: 'account-current',
+      type: 'income',
+      amount: 50,
+      currency: 'EUR',
+      description: 'Prethodni prihod',
+      transactionDate: date(7),
+    })
+    await createTransaction({
+      accountId: 'account-current',
+      type: 'expense',
+      amount: 10,
+      currency: 'EUR',
+      description: 'Prethodni trošak',
+      transactionDate: date(13),
+    })
+
+    await expect(getDashboardSummary('7D')).resolves.toMatchObject({
+      income: 100,
+      expenses: 40,
+      netCashFlow: 60,
+      previousIncome: 50,
+      previousExpenses: 10,
+      previousNetCashFlow: 40,
+    })
   })
 })
 

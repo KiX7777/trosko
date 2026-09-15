@@ -1,7 +1,6 @@
 import type {
   Account,
   Category,
-  DashboardSummary,
   Label,
   Profile,
   RecurringTransaction,
@@ -333,67 +332,3 @@ export const demoRecurring: RecurringTransaction[] = [
     updatedAt: now,
   },
 ]
-
-export function createDemoSummary(): DashboardSummary {
-  const expenses = demoTransactions
-    .filter((tx) => tx.type === 'expense')
-    .reduce((sum, tx) => sum + tx.amountBase, 0)
-  const income = demoTransactions
-    .filter((tx) => tx.type === 'income')
-    .reduce((sum, tx) => sum + tx.amountBase, 0)
-  const categoryTotals = demoCategories
-    .filter((category) => category.type === 'expense')
-    .map((category) => ({
-      categoryId: category.id,
-      name: category.name,
-      amount: demoTransactions
-        .filter((tx) => tx.categoryId === category.id)
-        .reduce((sum, tx) => sum + (tx.type === 'expense' ? tx.amountBase : 0), 0),
-      percentage: 0,
-      color: category.color,
-    }))
-    .filter((item) => item.amount > 0)
-  return {
-    balance: demoAccounts.reduce((sum, account) => sum + account.balance, 0),
-    income,
-    expenses,
-    netCashFlow: income - expenses,
-    previousNetCashFlow: 1100,
-    transactionCount: demoTransactions.length,
-    cashFlow: [
-      { date: '2026-09-01', income: 520, expenses: 280 },
-      { date: '2026-09-02', income: 400, expenses: 330 },
-      { date: '2026-09-03', income: 710, expenses: 220 },
-      { date: '2026-09-04', income: 900, expenses: 190 },
-      { date: '2026-09-05', income: 570, expenses: 240 },
-      { date: '2026-09-06', income: 310, expenses: 410 },
-      { date: '2026-09-07', income: 380, expenses: 180 },
-    ],
-    categoryBreakdown: categoryTotals.map((item) => ({
-      ...item,
-      percentage: Math.round((item.amount / Math.max(expenses, 1)) * 100),
-    })),
-    accountBreakdown: demoAccounts
-      .map((account) => {
-        const accountTransactions = demoTransactions.filter(
-          (tx) => tx.type === 'expense' && tx.accountId === account.id,
-        )
-        const amount = accountTransactions.reduce((sum, tx) => sum + tx.amountBase, 0)
-        return {
-          accountId: account.id,
-          name: account.name,
-          amount,
-          percentage: Math.round((amount / Math.max(expenses, 1)) * 100),
-          count: accountTransactions.length,
-          color: account.color,
-        }
-      })
-      .filter((item) => item.amount > 0)
-      .sort((a, b) => b.amount - a.amount),
-    topMerchants: [
-      { merchant: 'Konzum', amount: 1201.2, count: 14 },
-      { merchant: 'HEP', amount: 743.6, count: 3 },
-      { merchant: 'INA', amount: 286, count: 5 },
-    ],
-  }
-}

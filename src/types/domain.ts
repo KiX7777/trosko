@@ -168,6 +168,8 @@ export interface DashboardSummary {
   income: number
   expenses: number
   netCashFlow: number
+  previousIncome: number
+  previousExpenses: number
   previousNetCashFlow: number
   cashFlow: Array<{ date: string; income: number; expenses: number }>
   categoryBreakdown: Array<{
