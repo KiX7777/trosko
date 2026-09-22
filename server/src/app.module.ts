@@ -1,14 +1,19 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
 import { ScheduleModule } from '@nestjs/schedule'
+import { HealthController } from './health.controller.js'
 import { ExchangeRatesModule } from './modules/exchange-rates/exchange-rates.module.js'
 import { ExportsModule } from './modules/exports/exports.module.js'
 import { OcrModule } from './modules/ocr/ocr.module.js'
 import { RecurringModule } from './modules/recurring/recurring.module.js'
 
 @Module({
+  controllers: [HealthController],
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ['.env.local', '.env'],
+    }),
     ScheduleModule.forRoot(),
     OcrModule,
     ExportsModule,

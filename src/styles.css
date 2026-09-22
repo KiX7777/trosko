@@ -4290,6 +4290,230 @@ tbody tr:hover {
   padding-top: var(--space-4);
   border-top: var(--size-1) solid var(--shell-border);
 }
+
+/* PDF export keeps its calendar intentionally separate from the analytics filter. */
+.pdf-export-modal {
+  position: relative;
+  overflow: hidden;
+  border-color: var(--border-primary);
+  background:
+    radial-gradient(circle at 86% 0%, var(--overlay-primary-muted), transparent 31%),
+    linear-gradient(145deg, var(--shell-panel), var(--shell-panel-2));
+}
+.pdf-export-modal::before {
+  width: var(--size-142);
+  height: var(--size-142);
+  position: absolute;
+  top: calc(var(--size-70) * -1);
+  right: calc(var(--size-70) * -1);
+  border: var(--size-1) solid var(--overlay-primary-muted);
+  border-radius: 50%;
+  content: '';
+  opacity: 0.8;
+  pointer-events: none;
+}
+.pdf-export-modal .modal__header,
+.pdf-export-modal .date-range-filter {
+  position: relative;
+  z-index: 1;
+}
+.pdf-export-modal .modal__header {
+  margin-bottom: var(--space-4-5);
+  padding-bottom: var(--space-4);
+  border-bottom: var(--size-1) solid var(--shell-border);
+}
+.pdf-export-modal .modal__description {
+  max-width: var(--size-680);
+}
+.date-range-filter--pdf-export {
+  gap: var(--space-4);
+}
+.date-range-filter--pdf-export .date-range-filter__shortcuts {
+  align-items: flex-start;
+  padding: var(--space-3);
+  border: var(--size-1) solid var(--shell-border);
+  border-radius: var(--size-13);
+  background: var(--overlay-primary-subtle);
+}
+.date-range-filter--pdf-export .date-range-filter__shortcuts > span {
+  padding-top: var(--size-7);
+}
+.date-range-filter--pdf-export .date-range-filter__shortcuts button {
+  min-height: var(--size-34);
+  border-radius: var(--radius-pill);
+  background: var(--shell-panel);
+}
+.date-range-filter--pdf-export .date-range-filter__shortcuts button:hover,
+.date-range-filter--pdf-export .date-range-filter__shortcuts button:focus-visible {
+  border-color: var(--shell-primary);
+  color: var(--shell-primary);
+  background: var(--shell-panel-2);
+  outline: 0;
+}
+.date-range-filter--pdf-export .date-range-filter__selection {
+  align-items: center;
+  margin-top: 0;
+  padding: var(--space-3-5) var(--space-4);
+  border-color: var(--border-primary);
+  border-radius: var(--size-13);
+  background: linear-gradient(90deg, var(--overlay-primary-muted), var(--shell-panel-2));
+}
+.date-range-filter--pdf-export .date-range-filter__selection span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-7);
+  color: var(--shell-primary);
+}
+.date-range-filter--pdf-export .date-range-filter__selection strong {
+  font-size: var(--space-3-5);
+  font-variant-numeric: tabular-nums;
+}
+.pdf-export__calendar {
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  border: var(--size-1) solid var(--shell-border);
+  border-radius: var(--size-13);
+  background: var(--shell-panel);
+  box-shadow: inset 0 var(--size-1) 0 var(--overlay-primary-subtle);
+}
+.date-range-filter--pdf-export .rdp-root {
+  width: 100%;
+  margin-top: 0;
+  color: var(--shell-secondary);
+  --rdp-accent-color: var(--shell-primary);
+  --rdp-accent-background-color: var(--overlay-primary);
+  --rdp-day_button-border: var(--size-1) solid transparent;
+  --rdp-day_button-border-radius: var(--size-10);
+  --rdp-day_button-height: var(--size-34);
+  --rdp-day_button-width: var(--size-34);
+  --rdp-day-height: var(--size-38);
+  --rdp-day-width: var(--size-38);
+  --rdp-months-gap: var(--space-6);
+  --rdp-nav_button-height: var(--size-34);
+  --rdp-nav_button-width: var(--size-34);
+  --rdp-nav-height: var(--size-38);
+  --rdp-range_end-date-background-color: var(--shell-primary);
+  --rdp-range_end-color: var(--color-primary-contrast);
+  --rdp-range_middle-background-color: var(--overlay-primary);
+  --rdp-range_middle-color: var(--shell-text);
+  --rdp-range_start-color: var(--color-primary-contrast);
+  --rdp-range_start-date-background-color: var(--shell-primary);
+  --rdp-selected-border: var(--size-1) solid var(--shell-primary);
+  --rdp-today-color: var(--shell-primary);
+}
+.date-range-filter--pdf-export .rdp-months {
+  width: 100%;
+  max-width: none;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.date-range-filter--pdf-export .rdp-month {
+  min-width: 0;
+  flex: 1 1 0;
+}
+.date-range-filter--pdf-export .rdp-month_grid {
+  width: 100%;
+  table-layout: fixed;
+}
+.date-range-filter--pdf-export .rdp-month_caption {
+  height: var(--size-38);
+  color: var(--shell-text);
+  font-size: var(--space-3-5);
+  letter-spacing: -0.02em;
+}
+.date-range-filter--pdf-export .rdp-weekday {
+  padding: var(--size-7) 0;
+  color: var(--shell-muted);
+  font-size: var(--size-10);
+  font-weight: 750;
+  text-transform: lowercase;
+}
+.date-range-filter--pdf-export .rdp-day {
+  width: auto;
+  padding: 0;
+  border-top: 0;
+  color: var(--shell-secondary);
+  font-size: var(--size-11);
+  font-weight: 650;
+}
+.date-range-filter--pdf-export .rdp-day_button {
+  margin-inline: auto;
+  color: inherit;
+}
+.date-range-filter--pdf-export .rdp-day_button:hover:not(:disabled),
+.date-range-filter--pdf-export .rdp-day_button:focus-visible:not(:disabled) {
+  border-color: var(--shell-primary);
+  color: var(--shell-text);
+  background: var(--overlay-primary-muted);
+  outline: 0;
+}
+.date-range-filter--pdf-export .rdp-selected .rdp-day_button {
+  border-color: var(--shell-primary);
+}
+.date-range-filter--pdf-export .rdp-range_start .rdp-day_button,
+.date-range-filter--pdf-export .rdp-range_end .rdp-day_button {
+  box-shadow: 0 var(--size-3) var(--size-11) var(--shadow-primary);
+}
+.date-range-filter--pdf-export .rdp-range_middle {
+  color: var(--shell-text);
+}
+.date-range-filter--pdf-export .rdp-outside {
+  color: var(--shell-muted);
+}
+.date-range-filter--pdf-export .rdp-button_next,
+.date-range-filter--pdf-export .rdp-button_previous {
+  border: var(--size-1) solid var(--shell-border);
+  border-radius: var(--size-10);
+  color: var(--shell-primary);
+  background: var(--shell-panel-2);
+}
+.date-range-filter--pdf-export .rdp-button_next:hover,
+.date-range-filter--pdf-export .rdp-button_previous:hover {
+  border-color: var(--shell-primary);
+  color: var(--shell-text);
+  background: var(--overlay-primary-muted);
+}
+.date-range-filter--pdf-export .rdp-chevron {
+  fill: currentColor;
+}
+.date-range-filter--pdf-export .modal__actions {
+  margin-top: 0;
+  padding-top: var(--space-4);
+}
+@media (max-width: 736px) {
+  .pdf-export-modal--overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .pdf-export-modal {
+    max-width: none !important;
+    max-height: calc(100dvh - var(--space-2));
+    padding: var(--space-5) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom));
+    border-radius: var(--space-5) var(--space-5) 0 0;
+  }
+  .date-range-filter--pdf-export .date-range-filter__shortcuts {
+    gap: var(--space-2);
+  }
+  .date-range-filter--pdf-export .date-range-filter__shortcuts > div {
+    justify-content: flex-start;
+  }
+  .pdf-export__calendar {
+    padding: var(--space-3);
+  }
+  .date-range-filter--pdf-export .rdp-months {
+    gap: 0;
+  }
+  .date-range-filter--pdf-export .rdp-month {
+    width: 100%;
+  }
+  .date-range-filter--pdf-export .date-range-filter__selection {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--size-5);
+  }
+  .date-range-filter--pdf-export .date-range-filter__selection strong {
+    text-align: left;
+  }
+}
 @media (max-width: 736px) {
   .date-range-filter__shortcuts {
     align-items: flex-start;

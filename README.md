@@ -110,7 +110,8 @@ Apply both migrations in `supabase/migrations/` and create a Storage bucket name
 
 When both frontend Supabase values are present, `src/lib/supabase.ts` creates the client and the auth gate protects application routes. The repository uses the current authenticated user for reads and writes. When the values are absent, the auth page offers a local demo session instead.
 
-For the server-side recurring worker, configure server-only values in the process environment:
+For the server-side recurring worker and PDF reports, configure server-only values in the
+repository-root `.env.local` (or provide them through the deployment process environment):
 
 ```dotenv
 SUPABASE_URL=https://your-project.supabase.co
@@ -118,6 +119,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-server-only-service-role-key
 ```
 
 Never expose `SUPABASE_SERVICE_ROLE_KEY` to the Vite client or commit it to the repository.
+Restart `npm run server:dev` after changing these values; Nest loads `.env.local` before `.env`.
 
 More database-specific notes are in [`supabase/README.md`](supabase/README.md).
 

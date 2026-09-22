@@ -41,6 +41,7 @@ const schema = z
 
 type FormInput = z.input<typeof schema>
 type FormOutput = z.output<typeof schema>
+const DEFAULT_ACCOUNT_NAME = 'Tekući račun'
 
 export function QuickAddModal() {
   const { quickAddOpen, quickAddType, editingTransaction, closeQuickAdd } = useUIStore()
@@ -49,6 +50,8 @@ export function QuickAddModal() {
   const labelsQuery = useLabelsQuery()
   const transaction = editingTransaction?.transaction
   const isEditing = Boolean(transaction)
+  const defaultAccountId =
+    accountsQuery.data?.find((account) => account.name === DEFAULT_ACCOUNT_NAME)?.id ?? ''
   const form = useForm<FormInput, unknown, FormOutput>({
     resolver: zodResolver(schema),
     mode: 'onBlur',
@@ -85,6 +88,19 @@ export function QuickAddModal() {
       labelId: '',
     })
   }, [editingTransaction, form, quickAddOpen, quickAddType, transaction])
+  useEffect(() => {
+    if (
+      !quickAddOpen ||
+      transaction ||
+      !defaultAccountId ||
+      form.getValues('accountId') ||
+      form.getFieldState('accountId').isDirty
+    ) {
+      return
+    }
+
+    form.setValue('accountId', defaultAccountId)
+  }, [defaultAccountId, form, quickAddOpen, transaction])
   const type = form.watch('type')
   const mutation = useSaveTransactionMutation(transaction, {
     onSuccess: () => {
