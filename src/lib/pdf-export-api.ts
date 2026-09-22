@@ -19,7 +19,7 @@ export async function downloadPdfReport({ dateFrom, dateTo, demo }: PdfExportInp
     accessToken = data.session?.access_token
   }
 
-  const response = await fetch('/api/export/pdf', {
+  const response = await fetch(`${import.meta.env.VITE_API_URL ?? ''}/api/export/pdf`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
