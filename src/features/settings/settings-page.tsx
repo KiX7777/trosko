@@ -25,6 +25,7 @@ import { FieldError, fieldClassName } from '../../components/ui/form-field'
 import { AppSelect } from '../../components/ui/select'
 import { DEFAULT_CURRENCY, SUPPORTED_CURRENCIES } from '../../lib/constants'
 import { downloadPdfReport } from '../../lib/pdf-export-api'
+import { PasskeySettings } from '../auth/passkey-settings'
 
 function formatRangeLabel(range: DateRange | undefined) {
   if (!range?.from) return t('settings.pdfChooseRange')
@@ -183,6 +184,7 @@ export function SettingsPage() {
             />
           </label>
         </article>
+        <PasskeySettings />
         <article className="card settings__card">
           <div className="settings__card-heading">
             <span className="settings__icon">

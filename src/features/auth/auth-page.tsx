@@ -9,6 +9,7 @@ import { Button } from '../../components/ui/button'
 import { Icon } from '../../components/ui/icon'
 import { FieldError, fieldClassName } from '../../components/ui/form-field'
 import { t } from '../../lib/i18n'
+import { getPasskeyErrorMessage, isPasskeySupported } from './passkey'
 
 const schema = z.object({
   email: z.string().trim().min(1, t('validation.required')).email(t('auth.invalidEmail')),
@@ -17,7 +18,9 @@ const schema = z.object({
 
 export function AuthPage() {
   const [register, setRegister] = useState(false)
+  const [passkeyLoading, setPasskeyLoading] = useState(false)
   const navigate = useNavigate()
+  const passkeySupported = isPasskeySupported()
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     mode: 'onBlur',
@@ -41,6 +44,24 @@ export function AuthPage() {
     }
     toast.success(register ? t('auth.accountCreated') : t('auth.welcomeToast'))
     navigate('/dashboard', { viewTransition: true })
+  }
+
+  async function signInWithPasskey() {
+    if (!supabase || !passkeySupported) return
+    setPasskeyLoading(true)
+    try {
+      const { error } = await supabase.auth.signInWithPasskey()
+      if (error) {
+        toast.error(getPasskeyErrorMessage(error))
+        return
+      }
+      toast.success(t('auth.welcomeToast'))
+      navigate('/dashboard', { viewTransition: true })
+    } catch (error) {
+      toast.error(getPasskeyErrorMessage(error))
+    } finally {
+      setPasskeyLoading(false)
+    }
   }
   return (
     <div className="auth-shell">
@@ -90,6 +111,25 @@ export function AuthPage() {
             <Icon name="arrow-up-right" size={16} />
           </Button>
         </form>
+        {!register && supabase && (
+          <div className="auth__passkey">
+            <div className="auth__divider">
+              <span>{t('auth.or')}</span>
+            </div>
+            <Button
+              variant="secondary"
+              type="button"
+              disabled={!passkeySupported || passkeyLoading}
+              onClick={() => void signInWithPasskey()}
+            >
+              <Icon name="fingerprint" size={18} />
+              {passkeyLoading ? t('auth.passkeyWaiting') : t('auth.loginWithPasskey')}
+            </Button>
+            {!passkeySupported && (
+              <p className="auth__passkey-hint">{t('auth.passkeyUnsupported')}</p>
+            )}
+          </div>
+        )}
         <button className="auth__switch" onClick={() => setRegister((value) => !value)}>
           {register ? t('auth.switchToLogin') : t('auth.switchToRegister')}
         </button>

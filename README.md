@@ -113,6 +113,9 @@ When both frontend Supabase values are present, `src/lib/supabase.ts` creates th
 For the server-side recurring worker and PDF reports, configure server-only values in the
 repository-root `.env.local` (or provide them through the deployment process environment):
 
+For the server-side recurring worker and PDF reports, configure server-only values in the
+repository-root `.env.local` (or provide them through the deployment process environment):
+
 ```dotenv
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-server-only-service-role-key
@@ -122,6 +125,16 @@ Never expose `SUPABASE_SERVICE_ROLE_KEY` to the Vite client or commit it to the 
 Restart `npm run server:dev` after changing these values; Nest loads `.env.local` before `.env`.
 
 More database-specific notes are in [`supabase/README.md`](supabase/README.md).
+
+### Passkey sign-in
+
+Passkey sign-in uses Supabase Auth's experimental WebAuthn support. In the Supabase Dashboard, open **Authentication → Passkeys**, enable passkeys, and configure:
+
+- **Relying Party Display Name:** `Troško`
+- **Relying Party ID:** the bare production domain, without a scheme or path
+- **Relying Party Origins:** every allowed HTTPS origin; add the exact local loopback origin for development, such as `http://localhost:5173`
+
+Do this before registering a passkey. The relying-party ID is cryptographically bound to every passkey, so changing it later invalidates previously registered passkeys. HTTPS is required outside loopback addresses. Once configured, sign in with email and password, add a passkey under **Postavke → Passkey prijava**, sign out, and use **Prijavi se passkeyem**.
 
 ## Server API
 

@@ -3879,6 +3879,54 @@ tbody tr:hover {
   color: var(--shell-primary);
   background: var(--overlay-primary-muted);
 }
+.passkey__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.passkey__item {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: var(--size-34) minmax(0, 1fr) var(--size-34);
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: var(--size-1) solid var(--shell-border);
+  border-radius: var(--radius-sm);
+  background: var(--shell-bg);
+}
+.passkey__item-icon {
+  width: var(--size-34);
+  height: var(--size-34);
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  color: var(--shell-primary);
+  background: var(--overlay-primary-muted);
+}
+.passkey__item > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.passkey__item strong,
+.passkey__item span {
+  overflow-wrap: anywhere;
+}
+.passkey__item strong {
+  color: var(--shell-text);
+  font-size: var(--size-11);
+}
+.passkey__item > div > span,
+.passkey__hint {
+  color: var(--shell-muted);
+  font-size: var(--size-10);
+  line-height: 1.5;
+}
+.passkey__hint--warning {
+  color: var(--shell-warning);
+}
 .form__field {
   display: flex;
   flex-direction: column;
@@ -4634,6 +4682,35 @@ tbody tr:hover {
   background: transparent;
   font-size: var(--size-11);
   font-weight: 650;
+}
+.auth__passkey {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+.auth__passkey > .button {
+  width: 100%;
+}
+.auth__divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--shell-muted);
+  font-size: var(--size-10);
+}
+.auth__divider::before,
+.auth__divider::after {
+  content: '';
+  flex: 1;
+  height: var(--size-1);
+  background: var(--shell-border);
+}
+.auth__passkey-hint {
+  color: var(--shell-muted);
+  font-size: var(--size-10);
+  line-height: 1.5;
+  text-align: center;
 }
 .auth__note {
   display: flex;
