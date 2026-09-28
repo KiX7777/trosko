@@ -1,0 +1,335 @@
+/* Product shell */
+:root {
+  --shell-bg: var(--color-shell-background);
+  --shell-panel: var(--color-shell-panel);
+  --shell-panel-2: var(--color-shell-panel-secondary);
+  --shell-border: var(--border-white-soft);
+  --shell-text: var(--color-app-background-light);
+  --shell-secondary: var(--color-shell-secondary);
+  --shell-muted: var(--color-shell-muted);
+  --shell-primary: var(--color-primary);
+  --shell-primary-deep: var(--color-primary-deep);
+  --shell-income: var(--color-income);
+  --shell-expense: var(--color-expense);
+  --shell-warning: var(--color-warning);
+  --shell-indigo: var(--color-indigo);
+}
+:root[data-theme='light'] {
+  --shell-bg: var(--color-app-background-light);
+  --shell-panel: var(--color-surface-white);
+  --shell-panel-2: var(--color-surface-light-secondary);
+  --shell-border: var(--color-border-light);
+  --shell-text: var(--color-shell-panel);
+  --shell-secondary: var(--color-shell-muted);
+  --shell-muted: var(--color-shell-secondary);
+  --shell-primary: var(--color-primary-deep);
+  --shell-primary-deep: var(--color-primary-dark);
+  --shell-income: var(--color-income-strong);
+  --shell-expense: var(--color-expense-dark);
+  --shell-warning: var(--color-warning-dark);
+  --shell-indigo: var(--color-indigo-light);
+  --overlay-header: rgba(255, 255, 255, 0.88);
+  --overlay-table-header: rgba(226, 232, 240, 0.72);
+}
+.product-shell {
+  display: flex;
+  min-height: 100vh;
+  color: var(--shell-text);
+  background: var(--shell-bg);
+}
+.product-shell button,
+.product-shell input,
+.product-shell select {
+  font: inherit;
+}
+.product-shell .icon {
+  display: block;
+}
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 10;
+  width: var(--space-60);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-7) var(--space-3-5) var(--space-4);
+  background: var(--overlay-shell-dark);
+  border-right: var(--size-1) solid var(--shell-border);
+  backdrop-filter: blur(var(--space-4-5));
+}
+[data-theme='light'] .sidebar {
+  background: var(--overlay-white);
+}
+.brand__lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-10);
+  padding: 0 var(--space-3);
+  color: var(--shell-text);
+  font-size: var(--size-19);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+.brand__mark {
+  width: var(--size-34);
+  height: var(--size-34);
+  display: block;
+  border-radius: var(--size-11);
+  overflow: hidden;
+  flex: 0 0 auto;
+}
+.brand__mark img,
+.route-loading__mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sidebar__scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding-top: var(--size-34);
+}
+.sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-5);
+}
+.sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--size-42);
+  padding: 0 var(--space-3);
+  border-radius: var(--size-11);
+  color: var(--shell-secondary);
+  text-decoration: none;
+  font-size: var(--size-13);
+  font-weight: 500;
+  transition:
+    color var(--duration-fast) var(--ease-standard),
+    background var(--duration-fast) var(--ease-standard);
+}
+.sidebar__link:hover {
+  color: var(--shell-text);
+  background: var(--overlay-primary-subtle);
+}
+.sidebar__link.is-active {
+  color: var(--shell-primary);
+  background: var(--overlay-primary);
+  font-weight: 650;
+}
+.sidebar__caption {
+  padding: var(--size-23) var(--space-3) var(--size-7);
+  color: var(--shell-muted);
+  font-size: var(--size-10);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.sidebar__footer {
+  padding-top: var(--space-3-5);
+  border-top: var(--size-1) solid var(--shell-border);
+}
+.user-menu {
+  position: relative;
+}
+.user-menu__chip {
+  display: flex;
+  align-items: center;
+  gap: var(--size-9);
+  padding: var(--size-9);
+  border-radius: var(--space-3);
+  color: var(--shell-text);
+}
+.user-menu__trigger {
+  flex: 0 0 auto;
+  padding: 0;
+}
+.user-menu__trigger:focus-visible,
+.header__avatar:focus-visible {
+  outline: var(--size-2) solid var(--shell-primary);
+  outline-offset: var(--size-3);
+}
+.user-menu__popover {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + var(--space-2));
+  z-index: 20;
+  min-width: var(--size-150);
+  padding: var(--size-6);
+  border: var(--size-1) solid var(--shell-border);
+  border-radius: var(--space-3);
+  background: var(--shell-panel);
+  box-shadow: 0 var(--space-3-5) var(--space-8) var(--shadow-popover);
+}
+.user-menu__logout {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: var(--size-9);
+  padding: var(--size-9) var(--size-10);
+  border-radius: var(--space-2);
+  color: var(--color-danger-soft);
+  background: transparent;
+  font-size: var(--space-3);
+  text-align: left;
+}
+.user-menu__logout:hover {
+  background: var(--overlay-expense-subtle);
+}
+.user-menu__chip > span:nth-child(2) {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+}
+.user-menu__chip strong {
+  overflow: hidden;
+  font-size: var(--space-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.user-menu__chip small {
+  margin-top: var(--size-2);
+  color: var(--shell-muted);
+  font-size: var(--size-10);
+}
+.avatar,
+.header__avatar {
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--shell-primary);
+  color: var(--color-primary-contrast);
+  font-size: var(--size-10);
+  font-weight: 800;
+}
+.avatar {
+  width: var(--space-7-5);
+  height: var(--space-7-5);
+}
+.header__avatar {
+  width: var(--size-34);
+  height: var(--size-34);
+  border: 0;
+}
+.app__main {
+  flex: 1;
+  min-width: 0;
+  margin-left: var(--space-60);
+}
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  background: var(--overlay-header);
+  border-bottom: var(--size-1) solid var(--shell-border);
+  backdrop-filter: blur(var(--space-4-5));
+}
+.header .header__inner {
+  min-height: var(--space-19);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: var(--size-1240);
+  margin: 0 auto;
+  padding: 0 var(--space-9);
+}
+.header__kicker {
+  display: block;
+  color: var(--shell-muted);
+  font-size: var(--size-10);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+.header h1 {
+  margin-top: var(--size-3);
+  color: var(--shell-text);
+  font-size: var(--size-17);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  text-align: center;
+}
+.header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.header__actions .button {
+  color: var(--shell-secondary);
+}
+.header__mobile-menu {
+  display: none !important;
+}
+.app__content {
+  max-width: var(--size-1240);
+  margin: 0 auto;
+  padding: var(--space-9);
+  view-transition-name: page-content;
+}
+.app__content--fallback > .page-transition {
+  animation: page-transition-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: opacity, transform;
+}
+
+/* Native View Transitions are activated by React Router during navigation. */
+::view-transition-image-pair(page-content) {
+  isolation: auto;
+}
+
+::view-transition-old(page-content),
+::view-transition-new(page-content) {
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(page-content) {
+  animation: page-transition-out 160ms ease-out both;
+}
+
+::view-transition-new(page-content) {
+  animation: page-transition-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes page-transition-out {
+  to {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+}
+
+@keyframes page-transition-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.75rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+.page__heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-5);
+}
+.page__heading h2 {
+  margin-top: var(--space-1);
+  color: var(--shell-text);
+  font-size: clamp(var(--size-26), 3vw, var(--size-34));
+  line-height: 1.1;
+  letter-spacing: -0.04em;
+}
+.page__heading p {
+  max-width: var(--size-620);
+  margin-top: var(--space-2);
+  color: var(--shell-secondary);
+  font-size: var(--space-3-5);
+  line-height: 1.5;
+}

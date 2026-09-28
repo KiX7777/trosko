@@ -1,0 +1,399 @@
+.mobile-nav,
+.sidebar__scrim {
+  display: none;
+}
+@media (max-width: 980px) {
+  .summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .balance {
+    grid-column: 1 / -1;
+  }
+  .accounts__grid,
+  .category-management__grid,
+  .labels__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .app__content {
+    padding: var(--space-7) var(--space-6);
+  }
+}
+@media (max-width: 720px) {
+  .sidebar {
+    width: var(--size-260);
+    transform: translateX(-100%);
+    transition: transform var(--duration-base) var(--ease-standard);
+  }
+  .sidebar.is-open {
+    transform: translateX(0);
+    z-index: 13;
+  }
+  .sidebar__scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 9;
+    display: block;
+    border: 0;
+    background: var(--overlay-black-medium);
+  }
+  .app__main {
+    margin-left: 0;
+  }
+  .header .header__inner {
+    min-height: var(--size-66);
+    padding: 0 var(--space-4);
+  }
+  .header__mobile-menu {
+    display: grid !important;
+  }
+  .header__actions .button:first-of-type {
+    display: none;
+  }
+  .app__content {
+    padding: var(--size-25) var(--space-4) var(--size-92);
+  }
+  .mobile-nav {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 12;
+    display: flex;
+    height: var(--space-17);
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 var(--size-7);
+    border-top: var(--size-1) solid var(--shell-border);
+    background: var(--overlay-navigation-dark);
+    backdrop-filter: blur(var(--space-4));
+    /* Keep the fixed navigation out of the animated page-content snapshot. */
+    view-transition-name: mobile-navigation;
+  }
+
+  /*
+   * The View Transition overlay sits above the live document while a route is
+   * changing. Giving the persistent mobile navigation its own group prevents
+   * it from being hidden by the page snapshot; disabling its animation keeps
+   * the bar visually fixed while only the page content moves.
+   */
+  ::view-transition-group(mobile-navigation) {
+    z-index: 2;
+  }
+
+  ::view-transition-image-pair(mobile-navigation) {
+    isolation: isolate;
+  }
+
+  ::view-transition-old(mobile-navigation),
+  ::view-transition-new(mobile-navigation) {
+    animation: none;
+  }
+
+  .mobile-nav__item {
+    width: 20%;
+    height: var(--space-17);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--size-5);
+    color: var(--shell-secondary);
+    font-size: var(--size-9);
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .mobile-nav__item.is-active {
+    color: var(--shell-primary);
+  }
+  .mobile-nav__quick-add {
+    width: var(--size-46);
+    height: var(--size-46);
+    display: grid;
+    place-items: center;
+    margin-top: var(--space-negative-22);
+    border: 0;
+    border-radius: var(--radius-pill);
+    color: var(--color-primary-contrast);
+    background: var(--shell-primary);
+    box-shadow: 0 var(--space-2) var(--space-5-5) var(--border-primary);
+  }
+  .page__heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .page__heading .period-switcher {
+    align-self: stretch;
+    justify-content: space-between;
+  }
+  .monthly-expense-comparison .section__title-row {
+    flex-direction: column;
+  }
+  .month-multiselect {
+    align-self: stretch;
+  }
+  .month-multiselect__trigger {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .month-multiselect__menu {
+    right: auto;
+    left: 0;
+  }
+  .summary,
+  .analytics__metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+  .dashboard__grid,
+  .analytics__grid,
+  .settings__grid {
+    grid-template-columns: 1fr;
+  }
+  .merchant-card {
+    grid-column: auto;
+  }
+  .merchant-card .section__title-row > div,
+  .merchant__copy {
+    min-width: 0;
+  }
+  .merchant-card .section__title-row p,
+  .merchant__copy strong {
+    overflow-wrap: anywhere;
+  }
+  .account-summary,
+  .recurring-overview {
+    grid-template-columns: 1fr;
+  }
+  .account-summary > div,
+  .recurring-overview > div {
+    min-height: var(--size-85);
+  }
+  .accounts__grid,
+  .category-management__grid,
+  .labels__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .filters {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .filters__tabs {
+    overflow-x: auto;
+  }
+  .filters__tabs button {
+    flex: 1;
+  }
+  .search {
+    width: 100%;
+  }
+  .filters > .button {
+    justify-content: center;
+  }
+  .transactions-mobile-summary,
+  .transactions-mobile-list {
+    display: flex;
+  }
+  .transactions-mobile-summary {
+    flex-direction: column;
+    padding: var(--space-5);
+  }
+  .transactions-mobile-list {
+    margin-top: var(--space-1);
+  }
+  .transactions-page > .transactions-mobile-summary {
+    order: 1;
+  }
+  .transactions-page > .filters {
+    order: 2;
+  }
+  .transactions-page > .shortcuts {
+    order: 3;
+  }
+  .transactions-page > .transactions-mobile-list {
+    order: 4;
+  }
+  .transactions-page > .transactions-mobile-load-more {
+    display: inline-flex;
+    order: 5;
+  }
+  .transactions-page > .transactions-load-more-status {
+    display: none;
+    order: 6;
+  }
+  .transactions-page > .transactions-mobile-load-more-status {
+    display: block;
+    order: 6;
+  }
+  .transactions-page > .transactions-load-more-sentinel {
+    display: none;
+  }
+  .transactions-mobile-actions {
+    position: fixed;
+    right: var(--space-4);
+    bottom: calc(var(--space-17) + var(--space-3) + env(safe-area-inset-bottom));
+    left: var(--space-4);
+    z-index: 14;
+    display: flex;
+    min-height: var(--size-54);
+    padding: var(--space-2);
+    border: var(--size-1) solid var(--border-primary-soft);
+    border-radius: var(--space-4);
+    background: var(--shell-panel);
+    box-shadow: 0 var(--space-3) var(--space-8) var(--shadow-navigation);
+    backdrop-filter: blur(var(--space-4));
+  }
+  .transactions-mobile-actions .button {
+    min-height: var(--size-38);
+    padding-inline: var(--size-9);
+  }
+  .transactions-page .card--table {
+    display: none;
+  }
+  .transactions-page .page__heading {
+    display: none;
+  }
+  .transactions-page {
+    gap: var(--space-5);
+  }
+  .analytics__tabs {
+    margin-right: var(--space-negative-16);
+    padding-right: var(--space-4);
+  }
+  .date-range-filter .rdp-months {
+    flex-direction: column;
+    align-items: center;
+  }
+  .donut__layout {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+  .donut__legend {
+    width: 100%;
+  }
+  .modal__overlay {
+    padding: 0;
+    align-items: center;
+  }
+  .modal__card {
+    max-height: calc(100vh - var(--space-6));
+    border-radius: var(--space-5);
+  }
+  .modal__overlay--date-range {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .modal__card--date-range {
+    max-width: none !important;
+    max-height: calc(100vh - var(--space-2));
+    max-height: calc(100dvh - var(--space-2));
+    padding: var(--space-5) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom));
+    border-radius: var(--space-5) var(--space-5) 0 0;
+  }
+  .modal__card--date-range .modal__header {
+    margin-bottom: var(--space-4);
+  }
+  .date-range-filter .rdp-root {
+    --rdp-day-height: var(--space-10);
+    --rdp-day-width: var(--space-10);
+    --rdp-day_button-height: var(--space-9);
+    --rdp-day_button-width: var(--space-9);
+    --rdp-months-gap: 0;
+  }
+  .date-range-filter .rdp-months,
+  .date-range-filter .rdp-month {
+    width: 100%;
+  }
+  .date-range-filter .rdp-month_grid {
+    width: 100%;
+    table-layout: fixed;
+  }
+  .date-range-filter .rdp-day {
+    width: auto;
+  }
+  .date-range-filter__selection {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--size-5);
+  }
+  .date-range-filter__selection strong {
+    text-align: left;
+  }
+  .date-range-filter .modal__actions {
+    display: grid;
+    grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr);
+  }
+  .date-range-filter .modal__actions .button {
+    width: 100%;
+    min-width: 0;
+    padding-inline: var(--space-2);
+  }
+  /* Mobile browsers zoom focused inputs smaller than 16px. */
+  .app-select__input {
+    font-size: 16px !important;
+  }
+  .form__grid--two {
+    grid-template-columns: 1fr;
+  }
+  .auth__card {
+    padding: var(--size-25);
+  }
+  .auth__heading {
+    margin-top: var(--space-12);
+  }
+}
+@media (max-width: 430px) {
+  .summary,
+  .analytics__metrics,
+  .accounts__grid,
+  .category-management__grid,
+  .labels__grid {
+    grid-template-columns: 1fr;
+  }
+  .balance {
+    min-height: var(--space-45);
+  }
+  .metric-card {
+    min-height: var(--space-28);
+  }
+  .metric-card strong {
+    font-size: var(--size-19);
+  }
+  .account-summary__note {
+    font-size: var(--size-10) !important;
+  }
+  .widget--cashflow,
+  .widget--daily-expenses,
+  .widget--spending-heatmap,
+  .widget--category,
+  .widget--accounts,
+  .widget--upcoming,
+  .widget--recent,
+  .analytics__chart-card,
+  .merchant-card,
+  .settings__card {
+    padding: var(--space-4);
+  }
+}
+@media (max-width: 380px) {
+  .merchant__row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    row-gap: var(--size-6);
+  }
+  .merchant__copy {
+    flex: 1 1 calc(100% - var(--size-25) - var(--size-13));
+  }
+  .merchant__value {
+    width: calc(100% - var(--size-25) - var(--size-13));
+    min-width: 0;
+    margin-left: calc(var(--size-25) + var(--size-13));
+    flex-basis: calc(100% - var(--size-25) - var(--size-13));
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+    align-items: center;
+    gap: var(--space-2);
+  }
+  .merchant__value strong {
+    text-align: left;
+  }
+  .merchant__progress {
+    width: 100%;
+  }
+}

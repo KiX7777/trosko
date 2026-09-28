@@ -1,0 +1,103 @@
+.segmented-control {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--size-3);
+  padding: var(--space-1);
+  border-radius: var(--size-11);
+  background: var(--shell-panel-2);
+}
+.segmented-control button {
+  min-height: var(--size-34);
+  border: 0;
+  border-radius: var(--space-2);
+  color: var(--shell-secondary);
+  background: transparent;
+  font-size: var(--size-11);
+  font-weight: 700;
+}
+.segmented-control button.is-selected {
+  color: var(--color-primary-contrast);
+  background: var(--shell-primary);
+}
+.auth-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 15% 15%, var(--overlay-primary-medium), transparent 32%),
+    var(--shell-bg);
+}
+.auth__loading {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  color: var(--shell-secondary);
+  background: var(--shell-bg);
+}
+.auth__glow {
+  position: fixed;
+  width: var(--size-560);
+  height: var(--size-560);
+  border-radius: 50%;
+  background: var(--overlay-indigo-subtle);
+  filter: blur(var(--space-20));
+  pointer-events: none;
+}
+.auth__card {
+  position: relative;
+  width: min(100%, var(--size-450));
+  padding: var(--size-34);
+  border: var(--size-1) solid var(--shell-border);
+  border-radius: var(--space-5-5);
+  background: var(--overlay-auth-dark);
+  box-shadow: 0 var(--space-5) var(--space-20) var(--shadow-auth);
+}
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-12) var(--space-5);
+  color: var(--shell-muted);
+  text-align: center;
+}
+.empty__icon {
+  color: var(--shell-primary);
+}
+.auth__heading {
+  margin: var(--size-62) 0 var(--space-7);
+}
+.auth__heading h1 {
+  margin-top: var(--size-9);
+  color: var(--shell-text);
+  font-size: var(--space-7-5);
+  line-height: 1.12;
+  letter-spacing: -0.045em;
+}
+.auth__heading p {
+  margin-top: var(--space-3);
+  color: var(--shell-secondary);
+  font-size: var(--size-13);
+  line-height: 1.6;
+}
+.auth__switch {
+  width: 100%;
+  margin-top: var(--size-17);
+  border: 0;
+  color: var(--shell-primary);
+  background: transparent;
+  font-size: var(--size-11);
+  font-weight: 650;
+}
+.auth__note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--size-5);
+  margin-top: var(--size-25);
+  color: var(--shell-muted);
+  font-size: var(--size-10);
+  text-align: center;
+}

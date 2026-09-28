@@ -13,11 +13,11 @@ The `src/` tree contains the browser application. `main.tsx` registers the PWA s
 | `lib/`        | Persistence boundary, formatting, integrations, constants, and demo data. |
 | `locales/`    | Croatian translation resources.                                           |
 | `stores/`     | Zustand state for UI-only concerns.                                       |
-| `styles/`     | Additional feature CSS, currently receipt-specific styling.               |
+| `styles/`     | Design tokens, shared UI, layout, feature, and responsive CSS modules.    |
 | `types/`      | Shared TypeScript domain contracts.                                       |
 | `test/`       | Vitest setup.                                                             |
 
-The top-level `styles.css` is the main global stylesheet. It owns the design tokens, layout system, responsive behavior, and most component styles; `styles/` contains deliberately isolated additions.
+The top-level `styles.css` is the single global stylesheet entry point. It imports the smaller, responsibility-focused modules from `styles/` in cascade order.
 
 ## Data-flow rule
 

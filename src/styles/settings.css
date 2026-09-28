@@ -1,0 +1,188 @@
+.settings__grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+.settings__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.settings__card-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--size-11);
+  padding-bottom: var(--space-1);
+}
+.settings__card-heading h3 {
+  color: var(--shell-text);
+  font-size: var(--space-3-5);
+}
+.settings__card-heading p {
+  margin-top: var(--space-1);
+  color: var(--shell-muted);
+  font-size: var(--size-11);
+}
+.settings__icon {
+  width: var(--size-34);
+  height: var(--size-34);
+  display: grid;
+  place-items: center;
+  border-radius: var(--size-10);
+  color: var(--shell-primary);
+  background: var(--overlay-primary-muted);
+}
+.form__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-7);
+  color: var(--shell-secondary);
+  font-size: var(--size-11);
+}
+.form__field small {
+  color: var(--shell-expense);
+  font-size: var(--size-10);
+}
+.form__field .field__error {
+  display: block;
+  margin-top: calc(var(--unit) * -0.5);
+  line-height: 1.35;
+}
+.form__field input,
+.form__field select {
+  width: 100%;
+  min-height: var(--size-42);
+  padding: 0 var(--size-11);
+  border: var(--size-1) solid var(--shell-border);
+  border-radius: var(--size-10);
+  outline: 0;
+  color: var(--shell-text);
+  background: var(--shell-panel-2);
+  font-size: var(--space-3);
+}
+.form__field input:focus,
+.form__field select:focus {
+  border-color: var(--border-primary-strong);
+}
+.form__field input.field--invalid,
+.form__field select.field--invalid,
+.icon-picker__trigger.field--invalid {
+  border-color: var(--shell-expense);
+  box-shadow: 0 0 0 var(--size-1) var(--border-expense-soft);
+}
+.form__field input.field--invalid:focus,
+.form__field select.field--invalid:focus,
+.icon-picker__trigger.field--invalid:focus {
+  border-color: var(--shell-expense);
+  box-shadow: 0 0 0 var(--size-2) var(--overlay-expense);
+}
+.form__field input[type='color'] {
+  padding: var(--space-1);
+}
+.recurring__auto-log {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: var(--size-1) solid var(--shell-border);
+  border-radius: var(--size-10);
+  color: var(--shell-secondary);
+  background: var(--shell-panel-2);
+  cursor: pointer;
+}
+.recurring__auto-log input {
+  width: auto;
+  min-height: auto;
+  margin-top: var(--size-2);
+  accent-color: var(--shell-primary);
+}
+.recurring__auto-log span {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-3);
+}
+.recurring__auto-log strong {
+  color: var(--shell-text);
+  font-size: var(--space-3);
+}
+.recurring__auto-log small {
+  color: var(--shell-muted);
+  font-size: var(--size-10);
+}
+.theme__options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--size-7);
+}
+.theme__options button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--size-9);
+  border: var(--size-1) solid var(--shell-border);
+  border-radius: var(--size-11);
+  color: var(--shell-secondary);
+  background: var(--shell-panel-2);
+}
+.theme__options button.is-selected {
+  color: var(--shell-primary);
+  border-color: var(--shell-primary);
+}
+.theme__options strong {
+  font-size: var(--size-11);
+}
+.theme__options button > svg {
+  margin-left: auto;
+}
+.theme__preview {
+  width: 100%;
+  height: var(--size-34);
+  display: block;
+  border-radius: var(--size-7);
+  background: var(--color-shell-panel);
+}
+.theme__preview--light {
+  background: var(--color-app-background-light);
+  border: var(--size-1) solid var(--color-border-light);
+}
+.theme__preview--system {
+  background: linear-gradient(
+    90deg,
+    var(--color-app-background-light) 50%,
+    var(--color-shell-panel) 50%
+  );
+}
+.settings__card > .button + .button {
+  margin-top: var(--space-negative-8);
+}
+.settings__state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-7);
+  color: var(--shell-secondary);
+  font-size: var(--size-11);
+}
+.settings__online-dot {
+  width: var(--size-7);
+  height: var(--size-7);
+  border-radius: var(--radius-pill);
+  background: var(--shell-income);
+  box-shadow: 0 0 0 var(--space-1) var(--overlay-income-subtle);
+}
+.form__stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-15);
+}
+.icon-picker {
+  position: relative;
+}
+.icon-picker__option-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-9);
+}
+.form__grid--two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}

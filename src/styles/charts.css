@@ -1,0 +1,194 @@
+.form__field .field__currency {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* TanStack Charts surfaces */
+.chart__container {
+  width: 100%;
+  min-width: 0;
+  --chart-reveal-duration: 720ms;
+  --ts-chart-tooltip-background: var(--shell-panel);
+  --ts-chart-tooltip-border: 1px solid var(--shell-border);
+  --ts-chart-tooltip-color: var(--shell-text);
+  --ts-chart-tooltip-shadow: 0 12px 28px rgb(0 0 0 / 28%);
+  --ts-chart-tooltip-font: 600 var(--size-11)/1.35 'Inter', sans-serif;
+  --ts-chart-tooltip-padding: var(--size-10) var(--size-12);
+  --ts-chart-tooltip-border-radius: var(--space-2);
+  animation: chart-reveal var(--chart-reveal-duration) both;
+}
+.chart__empty {
+  display: grid;
+  min-height: var(--space-62);
+  place-items: center;
+  margin: var(--space-2) 0 0;
+  color: var(--shell-muted);
+  font-size: var(--size-11);
+  text-align: center;
+}
+.chart__container .ts-chart-host,
+.chart__container .ts-chart-surface,
+.chart__container svg {
+  width: 100%;
+  height: 100%;
+}
+.chart--cashflow {
+  height: var(--size-190);
+  display: block;
+  overflow: visible;
+  padding: 0;
+  margin-top: var(--space-4-5);
+  border-bottom: 0;
+  background: transparent;
+  animation-delay: 90ms;
+}
+.chart--daily-expenses {
+  height: var(--space-62);
+  display: block;
+  overflow: visible;
+  padding: 0;
+  margin-top: var(--space-2);
+  background: transparent;
+  --chart-reveal-duration: 760ms;
+  animation-delay: 70ms;
+}
+.chart--monthly-expense-comparison {
+  height: var(--space-62);
+  display: block;
+  overflow: visible;
+  padding: 0;
+  margin-top: var(--space-2);
+  background: transparent;
+  --chart-reveal-duration: 760ms;
+  animation-delay: 70ms;
+}
+.chart--spending-heatmap {
+  height: var(--size-205);
+  display: block;
+  overflow: visible;
+  padding: 0;
+  margin-top: var(--space-3);
+  background: transparent;
+  --chart-reveal-duration: 700ms;
+  animation-delay: 70ms;
+}
+.chart--monthly-expense-comparison .ts-chart-host,
+.chart--monthly-expense-comparison .ts-chart-surface {
+  overflow: visible;
+  color: var(--shell-secondary);
+}
+.chart--daily-expenses .ts-chart-host,
+.chart--daily-expenses .ts-chart-surface {
+  overflow: visible;
+  color: var(--shell-secondary);
+}
+.chart--spending-heatmap .ts-chart-host,
+.chart--spending-heatmap .ts-chart-surface {
+  overflow: visible;
+  color: var(--shell-secondary);
+}
+.chart--cashflow .ts-chart-host,
+.chart--cashflow .ts-chart-surface {
+  overflow: visible;
+  color: var(--shell-secondary);
+}
+.chart--category-rail {
+  height: var(--space-5-5);
+  display: block;
+  overflow: visible;
+  padding: 0;
+  margin-top: var(--size-25);
+  border-radius: 0;
+  background: transparent;
+  --chart-reveal-duration: 520ms;
+  animation-delay: 160ms;
+}
+.chart--category-rail .ts-chart-host,
+.chart--category-rail .ts-chart-surface {
+  overflow: visible;
+  color: var(--shell-muted);
+}
+.chart__container.merchant__progress {
+  overflow: visible;
+}
+.donut__frame {
+  position: relative;
+  width: var(--size-176);
+  height: var(--size-176);
+}
+.donut__chart {
+  position: absolute;
+  inset: 0;
+  width: var(--size-176);
+  height: var(--size-176);
+  display: block;
+  overflow: visible;
+  border-radius: 0;
+  background: transparent;
+  --chart-reveal-duration: 840ms;
+}
+.donut__chart::before {
+  display: none;
+}
+.donut__chart > div {
+  position: relative;
+  z-index: 0;
+  display: block;
+}
+.donut__chart .ts-chart-host,
+.donut__chart .ts-chart-surface {
+  overflow: visible;
+}
+.donut__center {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.donut__center strong {
+  font-size: var(--size-17);
+}
+.donut__center small {
+  margin-top: var(--size-3);
+  color: var(--shell-muted);
+  font-size: var(--size-10);
+}
+
+@keyframes chart-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(var(--size-6));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(page-content),
+  ::view-transition-new(page-content) {
+    animation-duration: 1ms;
+  }
+
+  .app__content--fallback > .page-transition {
+    animation-duration: 1ms;
+  }
+
+  .modal__overlay,
+  .modal__card {
+    transition-duration: 1ms;
+  }
+
+  .modal__card {
+    transform: none;
+  }
+
+  .chart__container {
+    animation: none;
+  }
+}

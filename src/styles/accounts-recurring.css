@@ -1,0 +1,172 @@
+.recurring-overview {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--size-1);
+  overflow: hidden;
+  border: var(--size-1) solid var(--shell-border);
+  border-radius: var(--space-4);
+  background: var(--shell-border);
+}
+.account-summary > div,
+.recurring-overview > div {
+  min-height: var(--size-114);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-5);
+  background: var(--shell-panel);
+}
+.account-summary strong,
+.recurring-overview strong {
+  margin-top: var(--size-7);
+  color: var(--shell-text);
+  font-size: var(--size-25);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.account-summary__note {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--shell-income);
+  font-size: var(--size-11);
+}
+.recurring-overview small {
+  margin-top: var(--space-1);
+  color: var(--shell-muted);
+  font-size: var(--size-10);
+}
+.accounts__grid,
+.category-management__grid,
+.labels__grid,
+.settings__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+}
+.account-card {
+  min-height: var(--size-210);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-4-5);
+  border: var(--size-1) solid var(--shell-border);
+  border-radius: var(--space-4);
+  background: var(--shell-panel);
+}
+.account-card.is-archived {
+  opacity: 0.56;
+}
+.account-card__top,
+.category-management__header,
+.labels__card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.account-card__top button,
+.category-management__header button,
+.labels__card-top button {
+  display: grid;
+  place-items: center;
+  padding: var(--space-1);
+  border: 0;
+  color: var(--shell-muted);
+  background: transparent;
+}
+.account-card__menu {
+  position: relative;
+}
+
+.account-card__menu button {
+  background-color: transparent;
+}
+
+.account-card__menu-popover {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  z-index: 10;
+  min-width: var(--size-170);
+  padding: var(--size-6);
+  border: var(--size-1) solid var(--shell-border);
+  border-radius: var(--space-3);
+  background: var(--shell-panel);
+  box-shadow: 0 var(--space-3-5) var(--space-8) var(--shadow-popover);
+}
+.account-card__menu-action {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: var(--size-9);
+  padding: var(--size-9) var(--size-10);
+  border-radius: var(--space-2);
+  color: var(--shell-secondary);
+  background: transparent;
+  font-size: var(--size-11);
+  text-align: left;
+  white-space: nowrap;
+}
+.account-card__menu-action:hover {
+  color: var(--shell-text);
+  background: var(--shell-panel-2);
+}
+.account-card__menu-action--danger {
+  color: var(--color-danger-soft);
+}
+.account-card__menu-action--danger:hover {
+  color: var(--color-danger-text);
+  background: var(--overlay-expense-subtle);
+}
+.account-card__icon {
+  width: var(--size-42);
+  height: var(--size-42);
+  display: grid;
+  place-items: center;
+  border-radius: var(--size-13);
+  background: var(--shell-panel-2);
+}
+.account-card__type {
+  margin-top: var(--space-5-5);
+  color: var(--shell-muted);
+  font-size: var(--size-10);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.account-card h3 {
+  margin-top: var(--size-5);
+  color: var(--shell-text);
+  font-size: var(--size-15);
+}
+.account-card > strong {
+  margin-top: var(--size-11);
+  font-size: var(--space-5);
+  font-weight: 650;
+}
+.account-card__footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: var(--size-13);
+  border-top: var(--size-1) solid var(--shell-border);
+  color: var(--shell-muted);
+  font-size: var(--size-10);
+}
+.panel--info {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--size-17);
+  color: var(--shell-primary);
+}
+.panel--info h3 {
+  color: var(--shell-text);
+  font-size: var(--size-13);
+}
+.panel--info p {
+  max-width: var(--size-680);
+  margin-top: var(--space-1);
+  color: var(--shell-secondary);
+  font-size: var(--size-11);
+  line-height: 1.5;
+}
